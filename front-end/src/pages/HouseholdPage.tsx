@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import MobileNav from "../components/MobileNav";
 import {
   createMyHousehold,
@@ -10,6 +11,7 @@ import {
   getMyHouseholdTransactions,
   inviteToHousehold,
   leaveMyHousehold,
+  scanTransactionReceipt,
   updateMyHouseholdTransaction,
 } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
@@ -65,6 +67,9 @@ export default function HouseholdPage() {
   const [transactionDescriptionDraft, setTransactionDescriptionDraft] = useState("");
   const [transactionDateDraft, setTransactionDateDraft] = useState(todayAsDateInputValue);
   const [participantUserIdsDraft, setParticipantUserIdsDraft] = useState<string[]>([]);
+  const [isExtractingReceipt, setIsExtractingReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState("");
+  const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
     () =>
@@ -249,6 +254,7 @@ export default function HouseholdPage() {
 
   function openTransactionModal() {
     setTransactionError("");
+    setReceiptError("");
     setTransactionAmountDraft("");
     setTransactionTypeDraft(transactionTypes[0]?.name ?? "");
     setTransactionDescriptionDraft("");
@@ -260,6 +266,7 @@ export default function HouseholdPage() {
 
   function openEditTransactionModal(transaction: HouseholdTransaction) {
     setTransactionError("");
+    setReceiptError("");
     setTransactionAmountDraft(String(transaction.amountCad));
     setTransactionTypeDraft(transaction.type);
     setTransactionDescriptionDraft(transaction.description);
@@ -280,13 +287,45 @@ export default function HouseholdPage() {
   }
 
   function closeTransactionModal() {
-    if (isSavingTransaction) {
+    if (isSavingTransaction || isExtractingReceipt) {
       return;
     }
 
     setIsTransactionModalOpen(false);
     setTransactionError("");
+    setReceiptError("");
     setEditingTransactionId(null);
+  }
+
+  function onScanReceiptClick() {
+    setReceiptError("");
+    receiptInputRef.current?.click();
+  }
+
+  async function onReceiptFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setReceiptError("");
+    setTransactionError("");
+    setIsExtractingReceipt(true);
+
+    const result = await scanTransactionReceipt(file);
+
+    if (!result.ok) {
+      setReceiptError(result.message);
+      setIsExtractingReceipt(false);
+      return;
+    }
+
+    setTransactionAmountDraft(result.suggestion.amountCad.toFixed(2));
+    setTransactionTypeDraft(result.suggestion.type);
+    setTransactionDescriptionDraft(result.suggestion.description);
+    setIsExtractingReceipt(false);
   }
 
   async function onSaveHouseholdTransaction() {
@@ -474,7 +513,31 @@ export default function HouseholdPage() {
                     aria-labelledby="household-transaction-modal-title"
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <h2 id="household-transaction-modal-title">{editingTransactionId ? "Edit Shared Transaction" : "Add Shared Transaction"}</h2>
+                    <div className="modal-title-row">
+                      <h2 id="household-transaction-modal-title">{editingTransactionId ? "Edit Shared Transaction" : "Add Shared Transaction"}</h2>
+                      {!editingTransactionId ? (
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={onScanReceiptClick}
+                          disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
+                        >
+                          {isExtractingReceipt ? "Scanning..." : "Scan Receipt"}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <input
+                      ref={receiptInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="receipt-file-input"
+                      onChange={(event) => void onReceiptFileChange(event)}
+                      disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
+                    />
+
+                    {receiptError ? <p className="feedback error">{receiptError}</p> : null}
 
                     <form
                       className="transaction-form"
@@ -492,7 +555,7 @@ export default function HouseholdPage() {
                           inputMode="decimal"
                           value={transactionAmountDraft}
                           onChange={(event) => setTransactionAmountDraft(event.target.value)}
-                          disabled={isSavingTransaction}
+                          disabled={isSavingTransaction || isExtractingReceipt}
                           required
                         />
                       </label>
@@ -502,7 +565,7 @@ export default function HouseholdPage() {
                         <select
                           value={transactionTypeDraft}
                           onChange={(event) => setTransactionTypeDraft(event.target.value)}
-                          disabled={isSavingTransaction || modalTypeOptions.length === 0}
+                          disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
                           required
                         >
                           {modalTypeOptions.length === 0 ? <option value="">No types available</option> : null}
@@ -524,7 +587,7 @@ export default function HouseholdPage() {
                           type="text"
                           value={transactionDescriptionDraft}
                           onChange={(event) => setTransactionDescriptionDraft(event.target.value)}
-                          disabled={isSavingTransaction}
+                          disabled={isSavingTransaction || isExtractingReceipt}
                           placeholder="Short note about this transaction"
                           required
                         />
@@ -536,7 +599,7 @@ export default function HouseholdPage() {
                           type="date"
                           value={transactionDateDraft}
                           onChange={(event) => setTransactionDateDraft(event.target.value)}
-                          disabled={isSavingTransaction}
+                          disabled={isSavingTransaction || isExtractingReceipt}
                           required
                         />
                       </label>
@@ -554,10 +617,10 @@ export default function HouseholdPage() {
                                   type="checkbox"
                                   checked={checked}
                                   onChange={() => toggleParticipant(member.userId)}
-                                  disabled={isSavingTransaction}
-                                />
-                                <span>{member.name}</span>
-                              </label>
+                                    disabled={isSavingTransaction || isExtractingReceipt}
+                                  />
+                                  <span>{member.name}</span>
+                                </label>
                             );
                           })}
                         </div>
@@ -566,10 +629,15 @@ export default function HouseholdPage() {
                       {transactionError ? <p className="feedback error">{transactionError}</p> : null}
 
                       <div className="modal-actions">
-                        <button type="submit" disabled={isSavingTransaction || modalTypeOptions.length === 0}>
+                        <button type="submit" disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}>
                           {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
                         </button>
-                        <button className="secondary-button" type="button" onClick={closeTransactionModal} disabled={isSavingTransaction}>
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={closeTransactionModal}
+                          disabled={isSavingTransaction || isExtractingReceipt}
+                        >
                           Cancel
                         </button>
                       </div>
