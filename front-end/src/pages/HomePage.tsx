@@ -113,7 +113,14 @@ export default function HomePage() {
   }, [currentMonthPrefix, transactions]);
   const topSpendingTypes = currentMonthBreakdownData.slice(0, 4);
 
-  const breakdownColors = ["#0e7a74", "#188e87", "#2ca59c", "#57bdb6", "#89d4cf", "#b2e5e1"];
+  const breakdownColors = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+    "var(--chart-6)",
+  ];
 
   async function loadDashboardData() {
     setDataError("");
@@ -304,7 +311,7 @@ export default function HomePage() {
                 </div>
                 <div className="budget-amount-block budget-amount-block-right">
                   <p className="budget-summary-label">Left</p>
-                  <p className="budget-amount-value">
+                  <p className={`budget-amount-value ${remainingBudgetCad !== null && remainingBudgetCad > 0 ? "amount-positive" : ""}`}>
                     {remainingBudgetCad === null ? "Not set" : formattedCurrency.format(Math.max(remainingBudgetCad, 0))}
                   </p>
                 </div>
