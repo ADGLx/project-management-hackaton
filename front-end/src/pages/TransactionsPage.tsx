@@ -33,6 +33,7 @@ function formatDateForDisplay(dateValue: string): string {
 
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 type RecurrenceEndMode = "never" | "onDate" | "afterOccurrences";
+type SortOption = "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc";
 
 export default function TransactionsPage() {
   const { user } = useAuth();
@@ -57,6 +58,9 @@ export default function TransactionsPage() {
   const [recurrenceOccurrencesDraft, setRecurrenceOccurrencesDraft] = useState("12");
   const [isExtractingReceipt, setIsExtractingReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState("");
+  const [isFilterSortOpen, setIsFilterSortOpen] = useState(false);
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
+  const [selectedSortOption, setSelectedSortOption] = useState<SortOption>("dateDesc");
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
@@ -81,6 +85,43 @@ export default function TransactionsPage() {
   const canScanReceipt = Boolean(user?.subscribers);
   const canUseRecurringTransactions = Boolean(user?.subscribers);
   const canExportTransactions = Boolean(user?.subscribers);
+  const availableTypeFilters = useMemo(() => {
+    const typeSet = new Set<string>();
+
+    for (const transactionType of transactionTypes) {
+      typeSet.add(transactionType.name);
+    }
+
+    for (const transaction of transactions) {
+      typeSet.add(transaction.type);
+    }
+
+    return Array.from(typeSet).sort((left, right) => left.localeCompare(right));
+  }, [transactionTypes, transactions]);
+
+  const visibleTransactions = useMemo(() => {
+    const filteredTransactions =
+      selectedTypeFilter === "all"
+        ? transactions
+        : transactions.filter((transaction) => transaction.type === selectedTypeFilter);
+    const sortedTransactions = [...filteredTransactions];
+
+    sortedTransactions.sort((left, right) => {
+      switch (selectedSortOption) {
+        case "dateAsc":
+          return left.transactionDate.localeCompare(right.transactionDate);
+        case "amountDesc":
+          return right.amountCad - left.amountCad;
+        case "amountAsc":
+          return left.amountCad - right.amountCad;
+        case "dateDesc":
+        default:
+          return right.transactionDate.localeCompare(left.transactionDate);
+      }
+    });
+
+    return sortedTransactions;
+  }, [selectedSortOption, selectedTypeFilter, transactions]);
 
   async function loadTransactionsData() {
     setDataError("");
@@ -349,7 +390,15 @@ export default function TransactionsPage() {
 
       <section className="dashboard-card transactions-card">
         <div className="card-header-actions-row">
-          <h2>Transaction List</h2>
+          <button
+            className="secondary-button filter-sort-button"
+            type="button"
+            onClick={() => setIsFilterSortOpen((current) => !current)}
+            aria-expanded={isFilterSortOpen}
+            aria-controls="transactions-filter-sort-panel"
+          >
+            Filter & Sort
+          </button>
           <div className="export-actions" role="group" aria-label="Export transactions">
             <button
               className="secondary-button export-button"
@@ -374,11 +423,37 @@ export default function TransactionsPage() {
           </div>
         </div>
 
+        {isFilterSortOpen ? (
+          <div className="filter-sort-panel" id="transactions-filter-sort-panel">
+            <label>
+              Filter by type
+              <select value={selectedTypeFilter} onChange={(event) => setSelectedTypeFilter(event.target.value)}>
+                <option value="all">All types</option>
+                {availableTypeFilters.map((typeName) => (
+                  <option key={typeName} value={typeName}>
+                    {typeName}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Sort by
+              <select value={selectedSortOption} onChange={(event) => setSelectedSortOption(event.target.value as SortOption)}>
+                <option value="dateDesc">Date (newest first)</option>
+                <option value="dateAsc">Date (oldest first)</option>
+                <option value="amountDesc">Amount (highest first)</option>
+                <option value="amountAsc">Amount (lowest first)</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
+
         {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
 
-        {transactions.length > 0 ? (
+        {visibleTransactions.length > 0 ? (
           <div className="transactions-list" role="list">
-            {transactions.map((transaction) => (
+            {visibleTransactions.map((transaction) => (
               <article className="transaction-row" role="listitem" key={transaction.id}>
                 <div className="transaction-main">
                   <p className="transaction-merchant">{transaction.type}</p>
@@ -410,7 +485,11 @@ export default function TransactionsPage() {
             ))}
           </div>
         ) : (
-          <p>No transactions yet. Use Add Transaction to create your first one.</p>
+          <p>
+            {transactions.length > 0
+              ? "No transactions match your current filters."
+              : "No transactions yet. Use Add Transaction to create your first one."}
+          </p>
         )}
       </section>
 

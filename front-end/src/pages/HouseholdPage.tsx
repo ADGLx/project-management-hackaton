@@ -36,6 +36,7 @@ function formatDateForDisplay(dateValue: string): string {
 
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 type RecurrenceEndMode = "never" | "onDate" | "afterOccurrences";
+type SortOption = "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc";
 
 export default function HouseholdPage() {
   const { user } = useAuth();
@@ -81,6 +82,9 @@ export default function HouseholdPage() {
   const [participantUserIdsDraft, setParticipantUserIdsDraft] = useState<string[]>([]);
   const [isExtractingReceipt, setIsExtractingReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState("");
+  const [isFilterSortOpen, setIsFilterSortOpen] = useState(false);
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
+  const [selectedSortOption, setSelectedSortOption] = useState<SortOption>("dateDesc");
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
@@ -105,6 +109,43 @@ export default function HouseholdPage() {
   const canScanReceipt = Boolean(user?.subscribers);
   const canUseRecurringTransactions = Boolean(user?.subscribers);
   const canExportTransactions = Boolean(user?.subscribers);
+  const availableTypeFilters = useMemo(() => {
+    const typeSet = new Set<string>();
+
+    for (const transactionType of transactionTypes) {
+      typeSet.add(transactionType.name);
+    }
+
+    for (const transaction of householdTransactions) {
+      typeSet.add(transaction.type);
+    }
+
+    return Array.from(typeSet).sort((left, right) => left.localeCompare(right));
+  }, [householdTransactions, transactionTypes]);
+
+  const visibleHouseholdTransactions = useMemo(() => {
+    const filteredTransactions =
+      selectedTypeFilter === "all"
+        ? householdTransactions
+        : householdTransactions.filter((transaction) => transaction.type === selectedTypeFilter);
+    const sortedTransactions = [...filteredTransactions];
+
+    sortedTransactions.sort((left, right) => {
+      switch (selectedSortOption) {
+        case "dateAsc":
+          return left.transactionDate.localeCompare(right.transactionDate);
+        case "amountDesc":
+          return right.amountCad - left.amountCad;
+        case "amountAsc":
+          return left.amountCad - right.amountCad;
+        case "dateDesc":
+        default:
+          return right.transactionDate.localeCompare(left.transactionDate);
+      }
+    });
+
+    return sortedTransactions;
+  }, [householdTransactions, selectedSortOption, selectedTypeFilter]);
 
   async function loadHouseholdFinanceData() {
     if (!household) {
@@ -507,7 +548,15 @@ export default function HouseholdPage() {
 
                 <div className="household-finance-panel">
                   <div className="page-title-row page-title-actions">
-                    <h3>Shared Transactions</h3>
+                    <button
+                      className="secondary-button filter-sort-button"
+                      type="button"
+                      onClick={() => setIsFilterSortOpen((current) => !current)}
+                      aria-expanded={isFilterSortOpen}
+                      aria-controls="shared-transactions-filter-sort-panel"
+                    >
+                      Filter & Sort
+                    </button>
                     <div className="card-top-right-actions">
                       <div className="export-actions" role="group" aria-label="Export household transactions">
                         <button
@@ -537,6 +586,32 @@ export default function HouseholdPage() {
                     </div>
                   </div>
 
+                  {isFilterSortOpen ? (
+                    <div className="filter-sort-panel" id="shared-transactions-filter-sort-panel">
+                      <label>
+                        Filter by type
+                        <select value={selectedTypeFilter} onChange={(event) => setSelectedTypeFilter(event.target.value)}>
+                          <option value="all">All types</option>
+                          {availableTypeFilters.map((typeName) => (
+                            <option key={typeName} value={typeName}>
+                              {typeName}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        Sort by
+                        <select value={selectedSortOption} onChange={(event) => setSelectedSortOption(event.target.value as SortOption)}>
+                          <option value="dateDesc">Date (newest first)</option>
+                          <option value="dateAsc">Date (oldest first)</option>
+                          <option value="amountDesc">Amount (highest first)</option>
+                          <option value="amountAsc">Amount (lowest first)</option>
+                        </select>
+                      </label>
+                    </div>
+                  ) : null}
+
                   {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
 
                 <div className="household-summary-row">
@@ -556,9 +631,9 @@ export default function HouseholdPage() {
 
                 {isFinanceLoading ? (
                   <p>Loading shared data...</p>
-                ) : householdTransactions.length > 0 ? (
+                ) : visibleHouseholdTransactions.length > 0 ? (
                   <div className="transactions-list" role="list">
-                    {householdTransactions.map((transaction) => (
+                    {visibleHouseholdTransactions.map((transaction) => (
                       <article className="transaction-row" role="listitem" key={transaction.id}>
                         <div className="transaction-main">
                           <p className="transaction-merchant">{transaction.type}</p>
@@ -592,7 +667,11 @@ export default function HouseholdPage() {
                     ))}
                   </div>
                 ) : (
-                  <p>No shared transactions yet.</p>
+                  <p>
+                    {householdTransactions.length > 0
+                      ? "No shared transactions match your current filters."
+                      : "No shared transactions yet."}
+                  </p>
                 )}
 
                 {transactionError && !isTransactionModalOpen ? <p className="feedback error">{transactionError}</p> : null}
