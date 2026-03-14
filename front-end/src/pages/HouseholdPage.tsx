@@ -118,6 +118,7 @@ export default function HouseholdPage() {
   const [selectedSortOption, setSelectedSortOption] = useState<SortOption>("dateDesc");
   const [selectedSettlementMonth, setSelectedSettlementMonth] = useState(currentMonthInputValue);
   const [settlementDetailsModal, setSettlementDetailsModal] = useState<SettlementDetailsModal | null>(null);
+  const [selectedHouseholdTransaction, setSelectedHouseholdTransaction] = useState<HouseholdTransaction | null>(null);
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
   const monthInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -508,7 +509,7 @@ export default function HouseholdPage() {
     setEditingTransactionId(null);
   }
 
-  async function onDeleteHouseholdTransaction(transactionId: string) {
+  async function onDeleteHouseholdTransaction(transactionId: string): Promise<boolean> {
     setTransactionError("");
     setIsDeletingTransactionId(transactionId);
 
@@ -517,10 +518,11 @@ export default function HouseholdPage() {
 
     if (!result.ok) {
       setTransactionError(result.message);
-      return;
+      return false;
     }
 
     await loadHouseholdFinanceData();
+    return true;
   }
 
   function onSettlementMonthChange(event: ChangeEvent<HTMLInputElement>) {
@@ -551,6 +553,35 @@ export default function HouseholdPage() {
 
   function closeSettlementDetailsModal() {
     setSettlementDetailsModal(null);
+  }
+
+  function openHouseholdTransactionDetailsModal(transaction: HouseholdTransaction) {
+    setSelectedHouseholdTransaction(transaction);
+  }
+
+  function closeHouseholdTransactionDetailsModal() {
+    setSelectedHouseholdTransaction(null);
+  }
+
+  function onEditFromHouseholdTransactionDetails() {
+    if (!selectedHouseholdTransaction) {
+      return;
+    }
+
+    closeHouseholdTransactionDetailsModal();
+    openEditTransactionModal(selectedHouseholdTransaction);
+  }
+
+  async function onDeleteFromHouseholdTransactionDetails() {
+    if (!selectedHouseholdTransaction) {
+      return;
+    }
+
+    const didDelete = await onDeleteHouseholdTransaction(selectedHouseholdTransaction.id);
+
+    if (didDelete) {
+      closeHouseholdTransactionDetailsModal();
+    }
   }
 
   function exportHouseholdTransactionsAsCsv() {
@@ -593,16 +624,17 @@ export default function HouseholdPage() {
       if (event.key === "Escape") {
         closeHouseholdInfoModal();
         closeSettlementDetailsModal();
+        closeHouseholdTransactionDetailsModal();
       }
     }
 
-    if (!isHouseholdInfoModalOpen && !settlementDetailsModal) {
+    if (!isHouseholdInfoModalOpen && !settlementDetailsModal && !selectedHouseholdTransaction) {
       return;
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isHouseholdInfoModalOpen, isInviting, isLeaving, settlementDetailsModal]);
+  }, [isHouseholdInfoModalOpen, isInviting, isLeaving, settlementDetailsModal, selectedHouseholdTransaction]);
 
   return (
     <main className="home-shell household-shell">
@@ -806,41 +838,28 @@ export default function HouseholdPage() {
 
                   {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
 
+                  <h3 className="household-bills-subtitle">Bills</h3>
+                  <hr className="household-bills-separator" />
+
                 {isFinanceLoading ? (
                   <p>Loading shared data...</p>
                 ) : visibleHouseholdTransactions.length > 0 ? (
                   <div className="transactions-list" role="list">
                     {visibleHouseholdTransactions.map((transaction) => (
-                      <article className="transaction-row" role="listitem" key={transaction.id}>
-                        <div className="transaction-main">
-                          <p className="transaction-merchant">{transaction.type}</p>
-                          <p className="transaction-meta">{transaction.description}</p>
-                          <p className="transaction-meta">Added by {transaction.createdByName}</p>
-                          <p className="transaction-meta">
-                            Split with {transaction.participants.map((participant) => participant.name).join(", ") || "nobody"}
-                          </p>
-                        </div>
-                        <p className="transaction-date">{formatDateForDisplay(transaction.transactionDate)}</p>
-                        <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
-                        <div className="transaction-actions">
-                          <button
-                            className="secondary-button"
-                            type="button"
-                            onClick={() => openEditTransactionModal(transaction)}
-                            disabled={isSavingTransaction || isDeletingTransactionId === transaction.id}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="secondary-button"
-                            type="button"
-                            onClick={() => void onDeleteHouseholdTransaction(transaction.id)}
-                            disabled={isDeletingTransactionId === transaction.id || isSavingTransaction}
-                          >
-                            {isDeletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
-                          </button>
-                        </div>
-                      </article>
+                      <button
+                        className="household-transaction-row"
+                        type="button"
+                        role="listitem"
+                        key={transaction.id}
+                        onClick={() => openHouseholdTransactionDetailsModal(transaction)}
+                        aria-label={`Open details for ${transaction.description}`}
+                      >
+                        <span className="household-transaction-main-line">
+                          <span className="household-transaction-description">{transaction.description}</span>
+                          <span className="household-transaction-amount">{formattedCurrency.format(transaction.amountCad)}</span>
+                        </span>
+                        <span className="household-transaction-meta-line">By: {transaction.createdByName} | {transaction.type}</span>
+                      </button>
                     ))}
                   </div>
                 ) : (
@@ -853,6 +872,66 @@ export default function HouseholdPage() {
 
                 {transactionError && !isTransactionModalOpen ? <p className="feedback error">{transactionError}</p> : null}
               </div>
+
+              {selectedHouseholdTransaction ? (
+                <div className="modal-overlay" role="presentation" onClick={closeHouseholdTransactionDetailsModal}>
+                  <section
+                    className="modal-card household-transaction-details-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="household-transaction-details-title"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className="page-title-row page-title-actions">
+                      <h3 id="household-transaction-details-title">Transaction details</h3>
+                      <button className="secondary-button" type="button" onClick={closeHouseholdTransactionDetailsModal}>
+                        Close
+                      </button>
+                    </div>
+
+                    <div className="household-transaction-details-grid">
+                      <p>
+                        Description: <strong>{selectedHouseholdTransaction.description}</strong>
+                      </p>
+                      <p>
+                        Amount: <strong>{formattedCurrency.format(selectedHouseholdTransaction.amountCad)}</strong>
+                      </p>
+                      <p>
+                        By: <strong>{selectedHouseholdTransaction.createdByName}</strong>
+                      </p>
+                      <p>
+                        Type: <strong>{selectedHouseholdTransaction.type}</strong>
+                      </p>
+                      <p>
+                        Date: <strong>{formatDateForDisplay(selectedHouseholdTransaction.transactionDate)}</strong>
+                      </p>
+                      <p>
+                        Split with:{" "}
+                        <strong>{selectedHouseholdTransaction.participants.map((participant) => participant.name).join(", ") || "nobody"}</strong>
+                      </p>
+                    </div>
+
+                    <div className="household-transaction-details-actions">
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={onEditFromHouseholdTransactionDetails}
+                        disabled={isSavingTransaction || isDeletingTransactionId === selectedHouseholdTransaction.id}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={() => void onDeleteFromHouseholdTransactionDetails()}
+                        disabled={isSavingTransaction || isDeletingTransactionId === selectedHouseholdTransaction.id}
+                      >
+                        {isDeletingTransactionId === selectedHouseholdTransaction.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </section>
+                </div>
+              ) : null}
 
               {isTransactionModalOpen ? (
                 <div className="modal-overlay" role="presentation" onClick={closeTransactionModal}>

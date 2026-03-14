@@ -1048,8 +1048,94 @@ button:disabled {
   max-height: 340px;
   overflow: auto;
   display: grid;
-  gap: 0.55rem;
-  padding-right: 0.2rem;
+  gap: 0.42rem;
+  padding-right: 0.1rem;
+}
+
+.household-bills-subtitle {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted) !important;
+}
+
+.household-bills-separator {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+.household-transaction-row {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-strong);
+  padding: 0.5rem 0.62rem;
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  box-shadow: none;
+  color: var(--text);
+}
+
+.household-transaction-row:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+  background: color-mix(in srgb, var(--panel-strong) 82%, var(--primary) 18%);
+}
+
+.household-transaction-main-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.household-transaction-description {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.household-transaction-amount {
+  flex-shrink: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.household-transaction-meta-line {
+  font-size: 0.78rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.household-transaction-details-modal {
+  width: min(520px, 100%);
+}
+
+.household-transaction-details-grid {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.household-transaction-details-grid p {
+  margin: 0;
+}
+
+.household-transaction-details-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
 }
 
 .transaction-row {
