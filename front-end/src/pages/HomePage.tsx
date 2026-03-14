@@ -31,6 +31,17 @@ function currentMonthStartDateString(): string {
   return `${year}-${month}-01`;
 }
 
+function hashString(input: string): number {
+  let hash = 0;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
+}
+
 export default function HomePage() {
   const { user, profileName, budgetAmountCad, saveMonthlyBudget } = useAuth();
   const [spendingHistory, setSpendingHistory] = useState<MonthlySpendingPoint[]>([]);
@@ -113,14 +124,29 @@ export default function HomePage() {
   }, [currentMonthPrefix, transactions]);
   const topSpendingTypes = currentMonthBreakdownData.slice(0, 4);
 
-  const breakdownColors = [
-    "var(--chart-1)",
-    "var(--chart-2)",
-    "var(--chart-3)",
-    "var(--chart-4)",
-    "var(--chart-5)",
-    "var(--chart-6)",
+  const chartCategoryColors = [
+    "var(--chart-category-1)",
+    "var(--chart-category-2)",
+    "var(--chart-category-3)",
+    "var(--chart-category-4)",
+    "var(--chart-category-5)",
+    "var(--chart-category-6)",
+    "var(--chart-category-7)",
+    "var(--chart-category-8)",
+    "var(--chart-category-9)",
+    "var(--chart-category-10)",
   ];
+
+  const breakdownColorByType = useMemo(
+    () =>
+      new Map(
+        currentMonthBreakdownData.map((entry) => {
+          const colorIndex = hashString(entry.name) % chartCategoryColors.length;
+          return [entry.name, chartCategoryColors[colorIndex]];
+        }),
+      ),
+    [currentMonthBreakdownData],
+  );
 
   async function loadDashboardData() {
     setDataError("");
@@ -366,8 +392,8 @@ export default function HomePage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={currentMonthBreakdownData} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="84%" paddingAngle={2}>
-                    {currentMonthBreakdownData.map((entry, index) => (
-                      <Cell key={entry.name} fill={breakdownColors[index % breakdownColors.length]} />
+                    {currentMonthBreakdownData.map((entry) => (
+                      <Cell key={entry.name} fill={breakdownColorByType.get(entry.name) ?? "var(--chart-category-1)"} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value) => formattedCurrency.format(Number(value))} />
