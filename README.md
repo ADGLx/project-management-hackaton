@@ -39,7 +39,25 @@ docker compose up --build
 
 Note: Postgres host port is currently not exposed in `docker-compose.yml`. If you need direct local access, uncomment the `db.ports` block.
 
+## Deploy setup (static frontend + nginx)
+
+Use the deploy compose file to build frontend assets and serve them from nginx.
+
+```bash
+docker compose -f docker-compose.deploy.yml up --build -d
+```
+
+Deploy endpoints:
+
+- App: `http://<host>`
+- API health via nginx proxy: `http://<host>/api/health`
+
+In deploy mode, nginx serves static files and proxies `/api/*` to the backend service.
+Set `DEPLOY_FRONTEND_ORIGIN` in `.env` to your public app URL (for cookie/CORS correctness).
+
 ## Auth API
+
+When using the deploy nginx setup, prepend `/api` (example: `POST /api/auth/login`).
 
 - `POST /auth/register`
   - body: `{ "name": "Alex Rivera", "email": "user@example.com", "password": "password123" }`
@@ -81,8 +99,10 @@ Set these in `.env` (see `.env.example`):
 - `POSTGRES_PORT` (default `5432`)
 - `BACKEND_PORT` (default `3000`)
 - `FRONTEND_PORT` (default `5173`)
+- `DEPLOY_PORT` (default `80`, used by `docker-compose.deploy.yml`)
+- `DEPLOY_FRONTEND_ORIGIN` (public app origin for deploy CORS/cookies)
 - `FRONTEND_ORIGIN` (must match the frontend URL used in browser)
-- `VITE_API_URL` (frontend API base URL, default `http://localhost:3000`)
+- `VITE_API_URL` (frontend API base URL; use `/api` in deploy mode)
 - `JWT_SECRET`
 - `JWT_EXPIRES_IN` (default `1d`)
 - `COOKIE_SECURE` (`true` in production HTTPS)

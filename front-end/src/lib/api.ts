@@ -25,7 +25,7 @@ import type {
   User,
 } from "../types/auth";
 
-export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+export const API_URL = (import.meta.env.VITE_API_URL ?? "/api").replace(/\/$/, "");
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
