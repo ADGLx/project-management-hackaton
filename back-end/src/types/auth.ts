@@ -7,6 +7,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  subscribers: boolean;
   created_at: string;
 }
 

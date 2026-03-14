@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { API_URL, getCurrentUser, getMyMonthlyBudget, logoutRequest, saveMyMonthlyBudget, sendAuthRequest } from "../lib/api";
+import { API_URL, getCurrentUser, getMyMonthlyBudget, logoutRequest, saveMyMonthlyBudget, sendAuthRequest, updateMySubscription } from "../lib/api";
 import type { AuthContextValue } from "../types/auth";
 
 const profileKey = "pmh_profile_name";
@@ -134,6 +134,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return result;
   }
 
+  async function updateSubscriptionStatus(subscribers: boolean) {
+    const result = await updateMySubscription(subscribers);
+
+    if (result.ok) {
+      setUser(result.user);
+    }
+
+    return result;
+  }
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -145,6 +155,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       register,
       refreshBudget,
       saveMonthlyBudget,
+      updateSubscriptionStatus,
       logout,
       profileName,
       apiUrl: API_URL,

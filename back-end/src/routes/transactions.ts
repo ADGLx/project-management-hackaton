@@ -3,6 +3,7 @@ import multer from "multer";
 import OpenAI from "openai";
 import { env } from "../config/env.js";
 import { getUserTransactionTypes } from "../db/transactionTypes.js";
+import { findUserById } from "../db/users.js";
 import {
   createUserTransaction,
   deleteUserTransaction,
@@ -175,113 +176,129 @@ router.post("/me/ocr", requireAuth, (req, res) => {
     return;
   }
 
-  receiptUpload(req, res, async (uploadError: unknown) => {
-    if (uploadError instanceof multer.MulterError) {
-      if (uploadError.code === "LIMIT_FILE_SIZE") {
-        res.status(400).json({ message: "Image is too large. Please upload up to 6MB." });
+  void (async () => {
+    const user = await findUserById(String(req.auth?.userId));
+
+    if (!user) {
+      res.status(401).json({ message: "User not found" });
+      return;
+    }
+
+    if (!user.subscribers) {
+      res.status(403).json({ message: "Receipt scanning is available to subscribers only" });
+      return;
+    }
+
+    receiptUpload(req, res, async (uploadError: unknown) => {
+      if (uploadError instanceof multer.MulterError) {
+        if (uploadError.code === "LIMIT_FILE_SIZE") {
+          res.status(400).json({ message: "Image is too large. Please upload up to 6MB." });
+          return;
+        }
+
+        res.status(400).json({ message: "Invalid image upload" });
         return;
       }
 
-      res.status(400).json({ message: "Invalid image upload" });
-      return;
-    }
-
-    if (uploadError) {
-      const message = uploadError instanceof Error && uploadError.message ? uploadError.message : "Invalid image upload";
-      res.status(400).json({ message });
-      return;
-    }
-
-    const file = req.file;
-
-    if (!file) {
-      res.status(400).json({ message: "Receipt image is required" });
-      return;
-    }
-
-    if (!file.buffer.length) {
-      res.status(400).json({ message: "Uploaded image is empty" });
-      return;
-    }
-
-    const client = getOpenAiClient();
-
-    if (!client) {
-      res.status(500).json({ message: "OCR is not configured on the server" });
-      return;
-    }
-
-    try {
-      const userId = String(req.auth?.userId);
-      const transactionTypes = await getUserTransactionTypes(userId);
-      const allowedTypes = transactionTypes.map((transactionType) => transactionType.name);
-
-      if (allowedTypes.length === 0) {
-        res.status(400).json({ message: "No transaction types found. Add one in your user page first." });
+      if (uploadError) {
+        const message = uploadError instanceof Error && uploadError.message ? uploadError.message : "Invalid image upload";
+        res.status(400).json({ message });
         return;
       }
 
-      const imageDataUrl = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+      const file = req.file;
 
-      const completion = await client.chat.completions.create({
-        model: env.openaiVisionModel,
-        temperature: 0,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content:
-              "You read receipt images and return structured data. Reply with JSON only and no markdown. Return exactly this shape: {\"amountCad\": number, \"type\": string, \"description\": string }.",
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Extract the main total amount from this receipt, choose one type from this list, and write a short description (2-6 words). Allowed types: ${allowedTypes.join(", ")}`,
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageDataUrl,
+      if (!file) {
+        res.status(400).json({ message: "Receipt image is required" });
+        return;
+      }
+
+      if (!file.buffer.length) {
+        res.status(400).json({ message: "Uploaded image is empty" });
+        return;
+      }
+
+      const client = getOpenAiClient();
+
+      if (!client) {
+        res.status(500).json({ message: "OCR is not configured on the server" });
+        return;
+      }
+
+      try {
+        const userId = String(req.auth?.userId);
+        const transactionTypes = await getUserTransactionTypes(userId);
+        const allowedTypes = transactionTypes.map((transactionType) => transactionType.name);
+
+        if (allowedTypes.length === 0) {
+          res.status(400).json({ message: "No transaction types found. Add one in your user page first." });
+          return;
+        }
+
+        const imageDataUrl = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+
+        const completion = await client.chat.completions.create({
+          model: env.openaiVisionModel,
+          temperature: 0,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content:
+                "You read receipt images and return structured data. Reply with JSON only and no markdown. Return exactly this shape: {\"amountCad\": number, \"type\": string, \"description\": string }.",
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Extract the main total amount from this receipt, choose one type from this list, and write a short description (2-6 words). Allowed types: ${allowedTypes.join(", ")}`,
                 },
-              },
-            ],
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: imageDataUrl,
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        const rawContent = completion.choices[0]?.message?.content;
+
+        if (!rawContent) {
+          res.status(502).json({ message: "OCR provider returned an empty response" });
+          return;
+        }
+
+        const parsedSuggestion = parseReceiptSuggestion(rawContent);
+
+        if (!parsedSuggestion) {
+          res.status(422).json({ message: "Could not extract receipt details. Please try another photo." });
+          return;
+        }
+
+        const allowedType = pickAllowedType(parsedSuggestion.type, allowedTypes);
+
+        if (!allowedType) {
+          res.status(422).json({ message: "Could not match receipt to your transaction types." });
+          return;
+        }
+
+        res.json({
+          suggestion: {
+            amountCad: parsedSuggestion.amountCad,
+            type: allowedType,
+            description: parsedSuggestion.description,
           },
-        ],
-      });
-
-      const rawContent = completion.choices[0]?.message?.content;
-
-      if (!rawContent) {
-        res.status(502).json({ message: "OCR provider returned an empty response" });
-        return;
+        });
+      } catch {
+        res.status(500).json({ message: "Failed to scan receipt" });
       }
-
-      const parsedSuggestion = parseReceiptSuggestion(rawContent);
-
-      if (!parsedSuggestion) {
-        res.status(422).json({ message: "Could not extract receipt details. Please try another photo." });
-        return;
-      }
-
-      const allowedType = pickAllowedType(parsedSuggestion.type, allowedTypes);
-
-      if (!allowedType) {
-        res.status(422).json({ message: "Could not match receipt to your transaction types." });
-        return;
-      }
-
-      res.json({
-        suggestion: {
-          amountCad: parsedSuggestion.amountCad,
-          type: allowedType,
-          description: parsedSuggestion.description,
-        },
-      });
-    } catch {
-      res.status(500).json({ message: "Failed to scan receipt" });
-    }
+    });
+  })().catch(() => {
+    res.status(500).json({ message: "Failed to scan receipt" });
   });
 });
 

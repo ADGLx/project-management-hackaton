@@ -2,6 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  subscribers: boolean;
   created_at: string;
 }
 
@@ -223,6 +224,7 @@ export interface AuthContextValue {
   register: (name: string, email: string, password: string) => Promise<AuthResult>;
   refreshBudget: () => Promise<void>;
   saveMonthlyBudget: (budgetAmountCad: number) => Promise<BudgetSaveResult>;
+  updateSubscriptionStatus: (subscribers: boolean) => Promise<AuthResult>;
   logout: () => Promise<void>;
 }
 

@@ -119,6 +119,43 @@ export async function logoutRequest(): Promise<void> {
   });
 }
 
+export async function updateMySubscription(subscribers: boolean): Promise<AuthResult> {
+  try {
+    const response = await fetch(`${API_URL}/auth/me/subscription`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ subscribers }),
+    });
+
+    const data = await readJson<AuthResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to update subscription",
+      };
+    }
+
+    if (!data?.user) {
+      return {
+        ok: false,
+        message: "Server returned an invalid subscription response",
+      };
+    }
+
+    return {
+      ok: true,
+      user: data.user,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
 export async function getMyMonthlyBudget(): Promise<BudgetFetchResult> {
   try {
     const response = await fetch(`${API_URL}/budget/me`, {

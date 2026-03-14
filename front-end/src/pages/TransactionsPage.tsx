@@ -11,6 +11,7 @@ import {
   scanTransactionReceipt,
   updateMyTransaction,
 } from "../lib/api";
+import { useAuth } from "../state/AuthContext";
 import type { TransactionType, UserTransaction } from "../types/auth";
 
 function todayAsDateInputValue(): string {
@@ -28,6 +29,7 @@ function formatDateForDisplay(dateValue: string): string {
 }
 
 export default function TransactionsPage() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<UserTransaction[]>([]);
   const [transactionTypes, setTransactionTypes] = useState<TransactionType[]>([]);
@@ -64,6 +66,7 @@ export default function TransactionsPage() {
 
     return fromServer;
   }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
+  const canScanReceipt = Boolean(user?.subscribers);
 
   async function loadTransactionsData() {
     setDataError("");
@@ -182,6 +185,11 @@ export default function TransactionsPage() {
   }
 
   function onScanReceiptClick() {
+    if (!canScanReceipt) {
+      setReceiptError("Receipt scanning is available to subscribers only.");
+      return;
+    }
+
     setReceiptError("");
     receiptInputRef.current?.click();
   }
@@ -339,9 +347,9 @@ export default function TransactionsPage() {
                   className="secondary-button"
                   type="button"
                   onClick={onScanReceiptClick}
-                  disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
+                  disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0 || !canScanReceipt}
                 >
-                  {isExtractingReceipt ? "Scanning..." : "Scan Receipt"}
+                  {isExtractingReceipt ? "Scanning..." : canScanReceipt ? "Scan Receipt" : "Subscribers Only"}
                 </button>
               ) : null}
             </div>
@@ -355,6 +363,10 @@ export default function TransactionsPage() {
               onChange={(event) => void onReceiptFileChange(event)}
               disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
             />
+
+            {!canScanReceipt && !editingTransactionId ? (
+              <p className="feedback">Upgrade to subscriber to unlock receipt scanning.</p>
+            ) : null}
 
             {receiptError ? <p className="feedback error">{receiptError}</p> : null}
 

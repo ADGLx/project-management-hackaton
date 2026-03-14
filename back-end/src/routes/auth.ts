@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Router } from "express";
 import { clearAuthCookie, setAuthCookie, signAuthToken } from "../auth/token.js";
-import { createUser, findUserByEmail, findUserById } from "../db/users.js";
+import { createUser, findUserByEmail, findUserById, updateUserSubscription } from "../db/users.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
@@ -17,6 +17,10 @@ interface LoginBody {
 
 interface RegisterBody extends LoginBody {
   name?: string;
+}
+
+interface SubscriptionBody {
+  subscribers?: boolean;
 }
 
 function validateEmailPassword(email?: string, password?: string): string | null {
@@ -131,6 +135,7 @@ router.post("/login", async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        subscribers: user.subscribers,
         created_at: user.created_at,
       },
     });
@@ -157,6 +162,34 @@ router.get("/me", requireAuth, async (req, res) => {
     res.json({ user });
   } catch {
     res.status(500).json({ message: "Failed to load user" });
+  }
+});
+
+router.patch("/me/subscription", requireAuth, async (req, res) => {
+  if (!req.auth) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const { subscribers } = (req.body ?? {}) as SubscriptionBody;
+
+  if (typeof subscribers !== "boolean") {
+    res.status(400).json({ message: "subscribers must be a boolean" });
+    return;
+  }
+
+  try {
+    const user = await updateUserSubscription(req.auth.userId, subscribers);
+
+    if (!user) {
+      clearAuthCookie(res);
+      res.status(401).json({ message: "User not found" });
+      return;
+    }
+
+    res.json({ user });
+  } catch {
+    res.status(500).json({ message: "Failed to update subscription" });
   }
 });
 

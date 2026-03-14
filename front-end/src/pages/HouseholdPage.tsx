@@ -90,6 +90,7 @@ export default function HouseholdPage() {
 
     return fromServer;
   }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
+  const canScanReceipt = Boolean(user?.subscribers);
 
   async function loadHouseholdFinanceData() {
     if (!household) {
@@ -298,6 +299,11 @@ export default function HouseholdPage() {
   }
 
   function onScanReceiptClick() {
+    if (!canScanReceipt) {
+      setReceiptError("Receipt scanning is available to subscribers only.");
+      return;
+    }
+
     setReceiptError("");
     receiptInputRef.current?.click();
   }
@@ -520,9 +526,9 @@ export default function HouseholdPage() {
                           className="secondary-button"
                           type="button"
                           onClick={onScanReceiptClick}
-                          disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
+                          disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0 || !canScanReceipt}
                         >
-                          {isExtractingReceipt ? "Scanning..." : "Scan Receipt"}
+                          {isExtractingReceipt ? "Scanning..." : canScanReceipt ? "Scan Receipt" : "Subscribers Only"}
                         </button>
                       ) : null}
                     </div>
@@ -536,6 +542,10 @@ export default function HouseholdPage() {
                       onChange={(event) => void onReceiptFileChange(event)}
                       disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
                     />
+
+                    {!canScanReceipt && !editingTransactionId ? (
+                      <p className="feedback">Upgrade to subscriber to unlock receipt scanning.</p>
+                    ) : null}
 
                     {receiptError ? <p className="feedback error">{receiptError}</p> : null}
 
