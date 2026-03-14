@@ -386,7 +386,7 @@ export default function TransactionsPage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <span className="dashboard-title-icon" aria-hidden="true">
-            ⚜
+            🍁
           </span>
           <span>Transactions</span>
         </h1>

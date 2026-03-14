@@ -25,7 +25,7 @@ export default function BudgetPage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <span className="dashboard-title-icon" aria-hidden="true">
-            ⚜
+            🍁
           </span>
           <span>Budget</span>
         </h1>

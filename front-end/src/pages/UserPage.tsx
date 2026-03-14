@@ -85,7 +85,7 @@ export default function UserPage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <span className="dashboard-title-icon" aria-hidden="true">
-            ⚜
+            🍁
           </span>
           <span>{user?.name ?? "Profile"}</span>
         </h1>

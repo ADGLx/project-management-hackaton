@@ -241,7 +241,7 @@ export default function HomePage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <span className="dashboard-title-icon" aria-hidden="true">
-            ⚜
+            🍁
           </span>
           <span>Coloc Calcul</span>
         </h1>
