@@ -56,10 +56,17 @@ export interface SettlementLine {
   amountCad: number;
 }
 
+export interface OwedToYouLine {
+  fromUserId: string;
+  fromName: string;
+  amountCad: number;
+}
+
 export interface HouseholdSettlementSummary {
   month: string;
   totalPaidByCurrentUserCad: number;
   youOwe: SettlementLine[];
+  owedToYou: OwedToYouLine[];
 }
 
 function centsToCad(cents: number): number {
@@ -426,6 +433,7 @@ export async function getMyHouseholdSettlementSummary(userId: string, month: str
 
   const sortedMemberIds = Array.from(new Set([...memberNameById.keys(), userId])).sort((left, right) => left.localeCompare(right));
   const youOweLines: SettlementLine[] = [];
+  const owedToYouLines: OwedToYouLine[] = [];
 
   for (let leftIndex = 0; leftIndex < sortedMemberIds.length; leftIndex += 1) {
     for (let rightIndex = leftIndex + 1; rightIndex < sortedMemberIds.length; rightIndex += 1) {
@@ -444,6 +452,14 @@ export async function getMyHouseholdSettlementSummary(userId: string, month: str
         });
       }
 
+      if (net > 0 && right === userId) {
+        owedToYouLines.push({
+          fromUserId: left,
+          fromName: memberNameById.get(left) ?? "Member",
+          amountCad: centsToCad(net),
+        });
+      }
+
       if (net < 0 && right === userId) {
         youOweLines.push({
           toUserId: left,
@@ -451,14 +467,24 @@ export async function getMyHouseholdSettlementSummary(userId: string, month: str
           amountCad: centsToCad(Math.abs(net)),
         });
       }
+
+      if (net < 0 && left === userId) {
+        owedToYouLines.push({
+          fromUserId: right,
+          fromName: memberNameById.get(right) ?? "Member",
+          amountCad: centsToCad(Math.abs(net)),
+        });
+      }
     }
   }
 
   youOweLines.sort((left, right) => right.amountCad - left.amountCad);
+  owedToYouLines.sort((left, right) => right.amountCad - left.amountCad);
 
   return {
     month,
     totalPaidByCurrentUserCad: centsToCad(totalPaidByCurrentUserCents),
     youOwe: youOweLines,
+    owedToYou: owedToYouLines,
   };
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCamera, faCircleInfo, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCalendarDays, faCamera, faCircleInfo, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import MobileNav from "../components/MobileNav";
 import PageSidePanel from "../components/PageSidePanel";
@@ -34,6 +34,10 @@ function formatDateForDisplay(dateValue: string): string {
   }
 
   return `${year}-${month}-${day}`;
+}
+
+function currentMonthInputValue(): string {
+  return new Date().toISOString().slice(0, 7);
 }
 
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
@@ -88,6 +92,9 @@ export default function HouseholdPage() {
   const [isFilterSortOpen, setIsFilterSortOpen] = useState(false);
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
   const [selectedSortOption, setSelectedSortOption] = useState<SortOption>("dateDesc");
+  const [selectedSettlementMonth, setSelectedSettlementMonth] = useState(currentMonthInputValue);
+  const [isOwedToYouDetailsOpen, setIsOwedToYouDetailsOpen] = useState(false);
+  const [isYouOweDetailsOpen, setIsYouOweDetailsOpen] = useState(false);
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
@@ -160,7 +167,7 @@ export default function HouseholdPage() {
 
     const [transactionsResult, settlementResult, transactionTypesResult] = await Promise.all([
       getMyHouseholdTransactions(),
-      getMyHouseholdSettlement(),
+      getMyHouseholdSettlement(selectedSettlementMonth),
       getMyTransactionTypes(),
     ]);
 
@@ -222,7 +229,7 @@ export default function HouseholdPage() {
     }
 
     void loadHouseholdFinanceData();
-  }, [household]);
+  }, [household, selectedSettlementMonth]);
 
   useEffect(() => {
     if (searchParams.get("new") !== "1" || !household) {
@@ -484,6 +491,16 @@ export default function HouseholdPage() {
     await loadHouseholdFinanceData();
   }
 
+  function onSettlementMonthChange(event: ChangeEvent<HTMLInputElement>) {
+    const nextMonth = event.target.value;
+
+    if (!nextMonth) {
+      return;
+    }
+
+    setSelectedSettlementMonth(nextMonth);
+  }
+
   function exportHouseholdTransactionsAsCsv() {
     if (!canExportTransactions || householdTransactions.length === 0) {
       return;
@@ -565,14 +582,94 @@ export default function HouseholdPage() {
 
           return (
             <>
-              <h2>{household.name}</h2>
-              {isCreator ? (
-                <p>Invite members to your household. Everyone can add, edit, and delete shared transactions.</p>
-              ) : (
-                <p>Only the creator can invite users. Everyone can add, edit, and delete shared transactions.</p>
-              )}
-
                 <div className="household-finance-panel">
+                  <div className="household-month-row">
+                    <p className="household-month-title">
+                      Current Month: <strong>{selectedSettlementMonth}</strong>
+                    </p>
+                    <label className="household-month-picker" htmlFor="household-month-picker">
+                      <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" />
+                      <span className="visually-hidden">Select settlement month</span>
+                      <input
+                        id="household-month-picker"
+                        type="month"
+                        value={selectedSettlementMonth}
+                        onChange={onSettlementMonthChange}
+                        max={currentMonthInputValue()}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="household-settlement-grid">
+                    <section className="household-settlement-card" aria-labelledby="owed-to-you-title">
+                      <div className="household-settlement-card-header">
+                        <h3 id="owed-to-you-title">Owed to you</h3>
+                      </div>
+
+                      {householdSettlement?.owedToYou.length ? (
+                        <ul className="household-owe-list">
+                          {householdSettlement.owedToYou.map((line) => (
+                            <li key={`${line.fromUserId}-${line.amountCad}`}>
+                              {line.fromName}: <strong>{formattedCurrency.format(line.amountCad)}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No one owes you for this month.</p>
+                      )}
+
+                      {isOwedToYouDetailsOpen ? (
+                        <p id="owed-to-you-details" className="household-settlement-detail-note">
+                          Based on shared transactions for {selectedSettlementMonth}. Amounts are netted per member.
+                        </p>
+                      ) : null}
+
+                      <button
+                        className="secondary-button household-settlement-details-button"
+                        type="button"
+                        onClick={() => setIsOwedToYouDetailsOpen((current) => !current)}
+                        aria-expanded={isOwedToYouDetailsOpen}
+                        aria-controls="owed-to-you-details"
+                      >
+                        Details
+                      </button>
+                    </section>
+
+                    <section className="household-settlement-card" aria-labelledby="you-owe-title">
+                      <div className="household-settlement-card-header">
+                        <h3 id="you-owe-title">You owe</h3>
+                      </div>
+
+                      {householdSettlement?.youOwe.length ? (
+                        <ul className="household-owe-list">
+                          {householdSettlement.youOwe.map((line) => (
+                            <li key={`${line.toUserId}-${line.amountCad}`}>
+                              {line.toName}: <strong>{formattedCurrency.format(line.amountCad)}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>You owe no one.</p>
+                      )}
+
+                      {isYouOweDetailsOpen ? (
+                        <p id="you-owe-details" className="household-settlement-detail-note">
+                          Based on shared transactions for {selectedSettlementMonth}. Amounts are netted per member.
+                        </p>
+                      ) : null}
+
+                      <button
+                        className="secondary-button household-settlement-details-button"
+                        type="button"
+                        onClick={() => setIsYouOweDetailsOpen((current) => !current)}
+                        aria-expanded={isYouOweDetailsOpen}
+                        aria-controls="you-owe-details"
+                      >
+                        Details
+                      </button>
+                    </section>
+                  </div>
+
                   <div className="page-title-row page-title-actions">
                     <button
                       className="secondary-button filter-sort-button"
@@ -639,21 +736,6 @@ export default function HouseholdPage() {
                   ) : null}
 
                   {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
-
-                <div className="household-summary-row">
-                  <p>
-                    You paid this month: <strong>{formattedCurrency.format(householdSettlement?.totalPaidByCurrentUserCad ?? 0)}</strong>
-                  </p>
-                  {householdSettlement?.youOwe.length ? (
-                    <ul className="household-owe-list">
-                      {householdSettlement.youOwe.map((line) => (
-                        <li key={`${line.toUserId}-${line.amountCad}`}>You owe {formattedCurrency.format(line.amountCad)} to {line.toName}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>You do not owe anyone for this month.</p>
-                  )}
-                </div>
 
                 {isFinanceLoading ? (
                   <p>Loading shared data...</p>

@@ -185,10 +185,17 @@ export interface HouseholdSettlementLine {
   amountCad: number;
 }
 
+export interface HouseholdOwedToYouLine {
+  fromUserId: string;
+  fromName: string;
+  amountCad: number;
+}
+
 export interface HouseholdSettlementSummary {
   month: string;
   totalPaidByCurrentUserCad: number;
   youOwe: HouseholdSettlementLine[];
+  owedToYou: HouseholdOwedToYouLine[];
 }
 
 export interface HouseholdTransactionListSuccess {
@@ -354,5 +361,6 @@ export interface HouseholdSettlementResponseBody {
   month?: string;
   totalPaidByCurrentUserCad?: number;
   youOwe?: HouseholdSettlementLine[];
+  owedToYou?: HouseholdOwedToYouLine[];
   message?: string;
 }

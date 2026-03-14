@@ -866,7 +866,12 @@ export async function getMyHouseholdSettlement(month?: string): Promise<Househol
       };
     }
 
-    if (typeof data?.month !== "string" || typeof data.totalPaidByCurrentUserCad !== "number" || !Array.isArray(data.youOwe)) {
+    if (
+      typeof data?.month !== "string" ||
+      typeof data.totalPaidByCurrentUserCad !== "number" ||
+      !Array.isArray(data.youOwe) ||
+      !Array.isArray(data.owedToYou)
+    ) {
       return {
         ok: false,
         message: "Server returned an invalid settlement response",
@@ -879,6 +884,7 @@ export async function getMyHouseholdSettlement(month?: string): Promise<Househol
         month: data.month,
         totalPaidByCurrentUserCad: data.totalPaidByCurrentUserCad,
         youOwe: data.youOwe,
+        owedToYou: data.owedToYou,
       },
     };
   } catch (error) {
