@@ -3,6 +3,7 @@ import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarDays, faCamera, faCircleInfo, faFileCode, faFileCsv, faFilter, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
+import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
 import PageSidePanel from "../components/PageSidePanel";
 import {
@@ -1181,6 +1182,7 @@ export default function HouseholdPage() {
         {loadingError ? <p className="feedback error">{loadingError}</p> : null}
       </section>
 
+      <AddTransactionFab />
       <MobileNav />
     </main>
   );
