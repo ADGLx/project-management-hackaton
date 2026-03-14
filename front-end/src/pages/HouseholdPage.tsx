@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileCode, faFileCsv } from "@fortawesome/free-solid-svg-icons";
+import { faCamera, faFileCode, faFileCsv } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import MobileNav from "../components/MobileNav";
 import {
@@ -703,12 +703,14 @@ export default function HouseholdPage() {
                       <h2 id="household-transaction-modal-title">{editingTransactionId ? "Edit Shared Transaction" : "Add Shared Transaction"}</h2>
                       {!editingTransactionId ? (
                         <button
-                          className="secondary-button"
+                          className="secondary-button scan-receipt-button"
                           type="button"
                           onClick={onScanReceiptClick}
                           disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0 || !canScanReceipt}
+                          aria-label={isExtractingReceipt ? "Scanning receipt" : canScanReceipt ? "Scan receipt" : "Subscribers only"}
+                          title={isExtractingReceipt ? "Scanning receipt" : canScanReceipt ? "Scan receipt" : "Subscribers only"}
                         >
-                          {isExtractingReceipt ? "Scanning..." : canScanReceipt ? "Scan Receipt" : "Subscribers Only"}
+                          <FontAwesomeIcon icon={faCamera} aria-hidden="true" />
                         </button>
                       ) : null}
                     </div>

@@ -1195,6 +1195,17 @@ button:disabled {
   margin: 0;
 }
 
+.scan-receipt-button {
+  width: 2.4rem;
+  height: 2.4rem;
+  min-width: 2.4rem;
+  border-radius: 999px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+}
+
 .receipt-file-input {
   display: none;
 }
