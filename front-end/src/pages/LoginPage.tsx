@@ -71,7 +71,20 @@ export default function LoginPage() {
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
+
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => {
+              setEmail("test@test.com");
+              setPassword("test1234");
+            }}
+            disabled={isSubmitting}
+          >
+            Use demo account
+          </button>
         </form>
+
 
         <p className="switch-link">
           New here? <Link to="/register">Create an account</Link>
