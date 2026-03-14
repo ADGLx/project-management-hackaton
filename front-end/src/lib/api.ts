@@ -7,11 +7,21 @@ import type {
   BudgetResponseBody,
   BudgetSaveResult,
   HouseholdCreateResult,
+  HouseholdBudgetFetchResult,
+  HouseholdBudgetResponseBody,
+  HouseholdBudgetSaveResult,
   HouseholdFetchResult,
   HouseholdInviteResult,
   HouseholdLeaveResponseBody,
   HouseholdLeaveResult,
   HouseholdResponseBody,
+  HouseholdTransactionCreateResult,
+  HouseholdTransactionDeleteResponseBody,
+  HouseholdTransactionDeleteResult,
+  HouseholdTransactionListResponseBody,
+  HouseholdTransactionListResult,
+  HouseholdTransactionResponseBody,
+  HouseholdTransactionUpdateResult,
   TransactionCreateResponseBody,
   TransactionCreateResult,
   TransactionDeleteResponseBody,
@@ -223,6 +233,13 @@ export async function getMyMonthlyBudgetHistory(): Promise<BudgetHistoryResult> 
 }
 
 export interface UpsertTransactionPayload {
+  amountCad: number;
+  type: string;
+  description: string;
+  transactionDate: string;
+}
+
+export interface UpsertHouseholdTransactionPayload {
   amountCad: number;
   type: string;
   description: string;
@@ -631,6 +648,229 @@ export async function leaveMyHousehold(): Promise<HouseholdLeaveResult> {
       return {
         ok: false,
         message: "Server returned an invalid leave response",
+      };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyHouseholdBudget(): Promise<HouseholdBudgetFetchResult> {
+  try {
+    const response = await fetch(`${API_URL}/household-finances/budget/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<HouseholdBudgetResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load household budget",
+      };
+    }
+
+    if (data?.budgetAmountCad === null || data?.budgetAmountCad === undefined) {
+      return {
+        ok: true,
+        budgetAmountCad: null,
+      };
+    }
+
+    if (typeof data.budgetAmountCad !== "number") {
+      return {
+        ok: false,
+        message: "Server returned an invalid household budget response",
+      };
+    }
+
+    return {
+      ok: true,
+      budgetAmountCad: data.budgetAmountCad,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function saveMyHouseholdBudget(budgetAmountCad: number): Promise<HouseholdBudgetSaveResult> {
+  try {
+    const response = await fetch(`${API_URL}/household-finances/budget/me`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ budgetAmountCad }),
+    });
+
+    const data = await readJson<HouseholdBudgetResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to save household budget",
+      };
+    }
+
+    if (typeof data?.budgetAmountCad !== "number") {
+      return {
+        ok: false,
+        message: "Server returned an invalid household budget response",
+      };
+    }
+
+    return {
+      ok: true,
+      budgetAmountCad: data.budgetAmountCad,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyHouseholdTransactions(): Promise<HouseholdTransactionListResult> {
+  try {
+    const response = await fetch(`${API_URL}/household-finances/transactions/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<HouseholdTransactionListResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load household transactions",
+      };
+    }
+
+    if (!Array.isArray(data?.transactions)) {
+      return {
+        ok: false,
+        message: "Server returned an invalid household transactions response",
+      };
+    }
+
+    return {
+      ok: true,
+      transactions: data.transactions,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function createMyHouseholdTransaction(payload: UpsertHouseholdTransactionPayload): Promise<HouseholdTransactionCreateResult> {
+  try {
+    const response = await fetch(`${API_URL}/household-finances/transactions/me`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await readJson<HouseholdTransactionResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to save household transaction",
+      };
+    }
+
+    if (!data?.transaction) {
+      return {
+        ok: false,
+        message: "Server returned an invalid household transaction response",
+      };
+    }
+
+    return {
+      ok: true,
+      transaction: data.transaction,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function updateMyHouseholdTransaction(
+  transactionId: string,
+  payload: UpsertHouseholdTransactionPayload,
+): Promise<HouseholdTransactionUpdateResult> {
+  try {
+    const response = await fetch(`${API_URL}/household-finances/transactions/me/${transactionId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await readJson<HouseholdTransactionResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to update household transaction",
+      };
+    }
+
+    if (!data?.transaction) {
+      return {
+        ok: false,
+        message: "Server returned an invalid household transaction response",
+      };
+    }
+
+    return {
+      ok: true,
+      transaction: data.transaction,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function deleteMyHouseholdTransaction(transactionId: string): Promise<HouseholdTransactionDeleteResult> {
+  try {
+    const response = await fetch(`${API_URL}/household-finances/transactions/me/${transactionId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const data = await readJson<HouseholdTransactionDeleteResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to delete household transaction",
+      };
+    }
+
+    if (!data?.ok) {
+      return {
+        ok: false,
+        message: "Server returned an invalid delete response",
       };
     }
 

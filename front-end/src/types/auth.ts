@@ -126,6 +126,45 @@ export interface HouseholdLeaveSuccess {
   ok: true;
 }
 
+export interface HouseholdBudgetFetchSuccess {
+  ok: true;
+  budgetAmountCad: number | null;
+}
+
+export interface HouseholdBudgetSaveSuccess {
+  ok: true;
+  budgetAmountCad: number;
+}
+
+export interface HouseholdTransaction {
+  id: string;
+  amountCad: number;
+  type: string;
+  description: string;
+  transactionDate: string;
+  createdByUserId: string;
+  createdByName: string;
+}
+
+export interface HouseholdTransactionListSuccess {
+  ok: true;
+  transactions: HouseholdTransaction[];
+}
+
+export interface HouseholdTransactionCreateSuccess {
+  ok: true;
+  transaction: HouseholdTransaction;
+}
+
+export interface HouseholdTransactionUpdateSuccess {
+  ok: true;
+  transaction: HouseholdTransaction;
+}
+
+export interface HouseholdTransactionDeleteSuccess {
+  ok: true;
+}
+
 export type BudgetFetchResult = BudgetFetchSuccess | AuthFailure;
 export type BudgetSaveResult = BudgetSaveSuccess | AuthFailure;
 export type BudgetHistoryResult = BudgetHistorySuccess | AuthFailure;
@@ -141,6 +180,12 @@ export type HouseholdFetchResult = HouseholdFetchSuccess | AuthFailure;
 export type HouseholdCreateResult = HouseholdCreateSuccess | AuthFailure;
 export type HouseholdInviteResult = HouseholdInviteSuccess | AuthFailure;
 export type HouseholdLeaveResult = HouseholdLeaveSuccess | AuthFailure;
+export type HouseholdBudgetFetchResult = HouseholdBudgetFetchSuccess | AuthFailure;
+export type HouseholdBudgetSaveResult = HouseholdBudgetSaveSuccess | AuthFailure;
+export type HouseholdTransactionListResult = HouseholdTransactionListSuccess | AuthFailure;
+export type HouseholdTransactionCreateResult = HouseholdTransactionCreateSuccess | AuthFailure;
+export type HouseholdTransactionUpdateResult = HouseholdTransactionUpdateSuccess | AuthFailure;
+export type HouseholdTransactionDeleteResult = HouseholdTransactionDeleteSuccess | AuthFailure;
 
 export interface AuthContextValue {
   user: User | null;
@@ -218,6 +263,26 @@ export interface HouseholdResponseBody {
 }
 
 export interface HouseholdLeaveResponseBody {
+  ok?: boolean;
+  message?: string;
+}
+
+export interface HouseholdBudgetResponseBody {
+  budgetAmountCad?: number | null;
+  message?: string;
+}
+
+export interface HouseholdTransactionListResponseBody {
+  transactions?: HouseholdTransaction[];
+  message?: string;
+}
+
+export interface HouseholdTransactionResponseBody {
+  transaction?: HouseholdTransaction;
+  message?: string;
+}
+
+export interface HouseholdTransactionDeleteResponseBody {
   ok?: boolean;
   message?: string;
 }

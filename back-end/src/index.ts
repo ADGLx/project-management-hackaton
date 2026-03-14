@@ -5,6 +5,7 @@ import express from "express";
 import { env } from "./config/env.js";
 import authRouter from "./routes/auth.js";
 import budgetRouter from "./routes/budget.js";
+import householdFinancesRouter from "./routes/householdFinances.js";
 import householdsRouter from "./routes/households.js";
 import transactionTypesRouter from "./routes/transactionTypes.js";
 import transactionsRouter from "./routes/transactions.js";
@@ -54,6 +55,7 @@ app.get("/", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/budget", budgetRouter);
 app.use("/households", householdsRouter);
+app.use("/household-finances", householdFinancesRouter);
 app.use("/transactions", transactionsRouter);
 app.use("/transaction-types", transactionTypesRouter);
 
