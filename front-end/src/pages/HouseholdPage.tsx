@@ -858,7 +858,10 @@ export default function HouseholdPage() {
                           <span className="household-transaction-description">{transaction.description}</span>
                           <span className="household-transaction-amount">{formattedCurrency.format(transaction.amountCad)}</span>
                         </span>
-                        <span className="household-transaction-meta-line">By: {transaction.createdByName} | {transaction.type}</span>
+                        <span className="household-transaction-meta-line">
+                          <span>By: {transaction.createdByName}</span>
+                          <span className="household-transaction-type">{transaction.type}</span>
+                        </span>
                       </button>
                     ))}
                   </div>

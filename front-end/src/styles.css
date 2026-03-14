@@ -1112,11 +1112,24 @@ button:disabled {
 }
 
 .household-transaction-meta-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+.household-transaction-meta-line span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.household-transaction-type {
+  text-align: right;
 }
 
 .household-transaction-details-modal {
