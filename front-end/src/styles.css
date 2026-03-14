@@ -332,10 +332,47 @@ button:disabled {
 }
 
 .budget-period-value {
-  margin-top: 0.25rem;
   color: var(--text) !important;
   font-weight: 700;
   font-size: 1.02rem;
+}
+
+.budget-period-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
+}
+
+.budget-period-line + .budget-period-line {
+  margin-top: 0.2rem;
+}
+
+.budget-period-line-labels .budget-period-separator,
+.budget-period-line-values .budget-period-separator {
+  margin: 0 0.1rem;
+}
+
+.budget-period-separator {
+  width: 1px;
+  height: 0.95rem;
+  background: var(--border);
+}
+
+.budget-period-amount {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.budget-period-amount-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.budget-header-edit-form {
+  margin-top: 0.55rem;
 }
 
 .budget-summary-label {
@@ -367,14 +404,6 @@ button:disabled {
 .budget-summary-main {
   text-align: left;
   justify-items: stretch;
-}
-
-.budget-summary-main .eyebrow {
-  text-align: center;
-}
-
-.budget-summary-main .budget-value-row {
-  justify-content: center;
 }
 
 .budget-value-row {
@@ -507,7 +536,8 @@ button:disabled {
 .budget-amount-value {
   margin-top: 0.25rem;
   color: var(--text) !important;
-  font-size: 1.05rem;
+  font-size: clamp(1.65rem, 4.8vw, 2.3rem);
+  letter-spacing: -0.03em;
   font-weight: 700;
 }
 

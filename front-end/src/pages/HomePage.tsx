@@ -63,11 +63,15 @@ export default function HomePage() {
   const currentMonthStart = useMemo(() => currentMonthStartDateString(), []);
   const currentMonthPrefix = currentMonthStart.slice(0, 7);
   const budgetPeriodLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-CA", {
+    () => {
+      const [year, month] = currentMonthStart.split("-");
+      const budgetPeriodDate = new Date(Number(year), Number(month) - 1, 1);
+
+      return new Intl.DateTimeFormat("en-CA", {
         month: "long",
         year: "numeric",
-      }).format(new Date(currentMonthStart)),
+      }).format(budgetPeriodDate);
+    },
     [currentMonthStart],
   );
 
@@ -214,26 +218,32 @@ export default function HomePage() {
         <div className="overview-section budget-card budget-summary-card">
           <div className="budget-summary-header">
             <div>
-              <p className="budget-summary-label">Budget period</p>
-              <p className="budget-period-value">{budgetPeriodLabel}</p>
-            </div>
-            <button
-              className="chart-toggle-button secondary-button"
-              type="button"
-              onClick={() => setChartView((current) => (current === "progress" ? "breakdown" : "progress"))}
-              aria-label={chartView === "progress" ? "Switch to spending breakdown chart" : "Switch to top spending types"}
-              title={chartView === "progress" ? "Switch to spending breakdown chart" : "Switch to top spending types"}
-            >
-              <FontAwesomeIcon icon={chartView === "progress" ? faChartPie : faGaugeHigh} />
-            </button>
-          </div>
-
-          <div className="budget-stats-layout">
-            <div className="budget-main-tile budget-summary-main">
-              <p className="eyebrow">Monthly budget amount</p>
+              <div className="budget-period-line budget-period-line-labels">
+                <span className="budget-summary-label">Budget for</span>
+                <span className="budget-period-separator" aria-hidden="true" />
+                <span className="budget-summary-label">Amount</span>
+              </div>
+              <div className="budget-period-line budget-period-line-values">
+                <span className="budget-period-value">{budgetPeriodLabel}</span>
+                <span className="budget-period-separator" aria-hidden="true" />
+                <span className="budget-period-amount-row">
+                  <span className="budget-period-amount">{formattedBudget}</span>
+                  {!isEditingBudget ? (
+                    <button
+                      className="budget-edit-button secondary-button"
+                      type="button"
+                      onClick={startEditingBudget}
+                      aria-label="Edit monthly budget"
+                      title="Edit monthly budget"
+                    >
+                      <FontAwesomeIcon icon={faPenToSquare} />
+                    </button>
+                  ) : null}
+                </span>
+              </div>
 
               {isEditingBudget ? (
-                <div className="budget-edit-form">
+                <div className="budget-header-edit-form budget-edit-form">
                   <div className="budget-edit-row">
                     <span>CAD $</span>
                     <input
@@ -259,22 +269,20 @@ export default function HomePage() {
 
                   {budgetError ? <p className="feedback error">{budgetError}</p> : null}
                 </div>
-              ) : (
-                <div className="budget-value-row">
-                  <p className="budget-value">{formattedBudget}</p>
-                  <button
-                    className="budget-edit-button secondary-button"
-                    type="button"
-                    onClick={startEditingBudget}
-                    aria-label="Edit monthly budget"
-                    title="Edit monthly budget"
-                  >
-                    <FontAwesomeIcon icon={faPenToSquare} />
-                  </button>
-                </div>
-              )}
+              ) : null}
             </div>
+            <button
+              className="chart-toggle-button secondary-button"
+              type="button"
+              onClick={() => setChartView((current) => (current === "progress" ? "breakdown" : "progress"))}
+              aria-label={chartView === "progress" ? "Switch to spending breakdown chart" : "Switch to top spending types"}
+              title={chartView === "progress" ? "Switch to spending breakdown chart" : "Switch to top spending types"}
+            >
+              <FontAwesomeIcon icon={chartView === "progress" ? faChartPie : faGaugeHigh} />
+            </button>
+          </div>
 
+          <div className="budget-stats-layout">
             <div className="budget-summary-progress">
               <p className="budget-progress-percent">{progressPercentLabel}</p>
 
