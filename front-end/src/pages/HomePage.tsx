@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChartPie, faGaugeHigh, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
+import { faArrowUpRightFromSquare, faChartPie, faGaugeHigh, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
+import { Link } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { getMyTransactionHistory, getMyTransactions } from "../lib/api";
@@ -318,7 +319,17 @@ export default function HomePage() {
         </div>
 
         <div className="overview-section chart-card">
-          <p className="chart-card-title">{chartView === "progress" ? "Top Spending Categories" : "Spending by Category"}</p>
+          <div className="chart-card-toolbar">
+            <p className="chart-card-title">{chartView === "progress" ? "Top Spending Categories" : "Spending by Category"}</p>
+            <Link
+              className="chart-details-link"
+              to="/transactions"
+              aria-label="See details in transactions"
+              title="See details in transactions"
+            >
+              <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+            </Link>
+          </div>
 
           {chartView === "progress" ? (
             topSpendingTypes.length > 0 ? (

@@ -623,6 +623,25 @@ button:disabled {
   gap: 0.6rem;
 }
 
+.chart-details-link {
+  width: 1.9rem;
+  height: 1.9rem;
+  min-width: 1.9rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--panel-strong);
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.chart-details-link:hover,
+.chart-details-link:focus-visible {
+  color: var(--text);
+  border-color: var(--primary);
+}
+
 .chart-card-title {
   font-size: 0.82rem;
   text-transform: uppercase;
