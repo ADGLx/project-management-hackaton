@@ -253,6 +253,10 @@ button:disabled {
   align-content: start;
 }
 
+.household-shell {
+  width: min(620px, 100% - 1rem);
+}
+
 .page-title-row h1 {
   font-size: clamp(1.6rem, 4vw, 2.8rem);
   letter-spacing: -0.02em;
@@ -879,6 +883,7 @@ button:disabled {
   border-radius: 12px;
   padding: 0.75rem;
   background: var(--panel-strong);
+  overflow-x: clip;
 }
 
 .household-month-row {
@@ -886,6 +891,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .household-month-title {
@@ -903,6 +909,7 @@ button:disabled {
   padding: 0.4rem 0.55rem;
   background: var(--panel);
   color: var(--muted);
+  max-width: 100%;
 }
 
 .household-month-picker input {
@@ -910,6 +917,7 @@ button:disabled {
   background: transparent;
   color: var(--text);
   font: inherit;
+  min-width: 0;
 }
 
 .household-month-picker input:focus-visible {
@@ -925,13 +933,13 @@ button:disabled {
 .household-settlement-card {
   border: 1px dashed var(--border);
   border-radius: 10px;
-  padding: 0.65rem 0.72rem 0;
+  padding: 0.55rem;
   background: var(--panel);
   display: grid;
-  gap: 0.45rem;
+  gap: 0.4rem;
   align-content: start;
-  min-height: 220px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .household-settlement-card-header {
@@ -946,6 +954,13 @@ button:disabled {
   font-size: 1rem;
 }
 
+.household-settlement-total {
+  margin: 0;
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+  font-weight: 800;
+  color: var(--text) !important;
+}
+
 .household-settlement-detail-note {
   margin: 0;
   font-size: 0.84rem;
@@ -953,23 +968,27 @@ button:disabled {
 }
 
 .household-settlement-details-button {
-  width: calc(100% + 1.44rem);
+  width: 100%;
   min-height: 2.25rem;
   padding: 0.35rem 0.55rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: auto;
-  margin-left: -0.72rem;
-  margin-right: -0.72rem;
+  margin-left: 0;
+  margin-right: 0;
   margin-bottom: 0;
-  border-left: 0;
-  border-right: 0;
-  border-bottom: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+  border-radius: 8px;
+}
+
+.household-finance-panel .page-title-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+@media (max-width: 700px) {
+  .household-settlement-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .household-settlement-details-modal {
@@ -1633,6 +1652,10 @@ button:disabled {
     width: min(1080px, 100% - 1.5rem);
     padding: 0.9rem 0 calc(5.4rem + env(safe-area-inset-bottom, 0px));
     gap: 1rem;
+  }
+
+  .household-shell {
+    width: min(620px, 100% - 1.5rem);
   }
 
   .chart-wrap {

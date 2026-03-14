@@ -156,6 +156,14 @@ export default function HouseholdPage() {
 
     return sortedTransactions;
   }, [householdTransactions, selectedSortOption, selectedTypeFilter]);
+  const owedToYouTotalCad = useMemo(
+    () => (householdSettlement?.owedToYou ?? []).reduce((sum, line) => sum + line.amountCad, 0),
+    [householdSettlement],
+  );
+  const youOweTotalCad = useMemo(
+    () => (householdSettlement?.youOwe ?? []).reduce((sum, line) => sum + line.amountCad, 0),
+    [householdSettlement],
+  );
 
   async function loadHouseholdFinanceData() {
     if (!household) {
@@ -557,7 +565,7 @@ export default function HouseholdPage() {
   }, [isHouseholdInfoModalOpen, isInviting, isLeaving, settlementDetailsModal]);
 
   return (
-    <main className="home-shell">
+    <main className="home-shell household-shell">
       <section className="page-title-row page-title-actions">
         <h1 className="dashboard-title">
           <PageSidePanel />
@@ -611,17 +619,7 @@ export default function HouseholdPage() {
                         <h3 id="owed-to-you-title">Owed to you</h3>
                       </div>
 
-                      {householdSettlement?.owedToYou.length ? (
-                        <ul className="household-owe-list">
-                          {householdSettlement.owedToYou.map((line) => (
-                            <li key={`${line.fromUserId}-${line.amountCad}`}>
-                              {line.fromName}: <strong>{formattedCurrency.format(line.amountCad)}</strong>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>No one owes you for this month.</p>
-                      )}
+                      <p className="household-settlement-total">{formattedCurrency.format(owedToYouTotalCad)}</p>
 
                       <button
                         className="secondary-button household-settlement-details-button"
@@ -637,17 +635,7 @@ export default function HouseholdPage() {
                         <h3 id="you-owe-title">You owe</h3>
                       </div>
 
-                      {householdSettlement?.youOwe.length ? (
-                        <ul className="household-owe-list">
-                          {householdSettlement.youOwe.map((line) => (
-                            <li key={`${line.toUserId}-${line.amountCad}`}>
-                              {line.toName}: <strong>{formattedCurrency.format(line.amountCad)}</strong>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>You owe no one.</p>
-                      )}
+                      <p className="household-settlement-total">{formattedCurrency.format(youOweTotalCad)}</p>
 
                       <button
                         className="secondary-button household-settlement-details-button"
