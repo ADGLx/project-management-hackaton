@@ -951,12 +951,12 @@ button:disabled {
 
 .household-settlement-card-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 .household-settlement-total {
   margin: 0;
-  font-size: clamp(1.15rem, 3vw, 1.45rem);
+  font-size: clamp(0.95rem, 2.1vw, 1.15rem);
   font-weight: 800;
   color: var(--text) !important;
 }
@@ -983,12 +983,6 @@ button:disabled {
 .household-finance-panel .page-title-row {
   flex-wrap: wrap;
   align-items: flex-start;
-}
-
-@media (max-width: 700px) {
-  .household-settlement-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .household-settlement-details-modal {
