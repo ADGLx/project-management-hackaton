@@ -7,8 +7,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pmh_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pmh_password}
       POSTGRES_DB: ${POSTGRES_DB:-pmh_db}
-    # ports:
-    #   - "${POSTGRES_PORT:-5432}:5432" #Not exposing ports, using docker network for communication between services
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,16 +18,16 @@ services:
   backend:
     build:
       context: ./back-end
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.deploy
     container_name: pmh-backend
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 3000
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      FRONTEND_ORIGIN: ${DEPLOY_FRONTEND_ORIGIN:-http://localhost}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
@@ -39,43 +37,21 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pmh_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pmh_password}
       POSTGRES_DB: ${POSTGRES_DB:-pmh_db}
-    ports:
-      - "${BACKEND_PORT:-3000}:3000"
-    volumes:
-      - ./back-end:/app
-      - backend_node_modules:/app/node_modules
-    command: sh -c "npm install && npm run dev"
-
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: pmh-nginx
-    restart: unless-stopped
-    depends_on:
-      - backend
-    # ports:
-    #   - "80:80" #Not exposing ports, using docker network for communication between services
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    # expose:
+    #   - "3000"
 
   frontend:
     build:
-      context: ./front-end
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: front-end/Dockerfile.deploy
+      args:
+        VITE_API_URL: /api
     container_name: pmh-frontend
     restart: unless-stopped
     depends_on:
       - backend
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
-      CHOKIDAR_USEPOLLING: "true"
-    ports:
-      - "${FRONTEND_PORT:-5173}:5173"
-    volumes:
-      - ./front-end:/app
-      - frontend_node_modules:/app/node_modules
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    # ports:
+    #   - "${DEPLOY_PORT:-80}:80"
 
 volumes:
   postgres_data:
-  backend_node_modules:
-  frontend_node_modules:

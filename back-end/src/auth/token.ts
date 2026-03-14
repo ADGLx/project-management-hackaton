@@ -17,7 +17,7 @@ export function verifyAuthToken(token: string): AuthTokenClaims {
   if (
     typeof payload !== "object" ||
     payload === null ||
-    typeof payload.userId !== "number" ||
+    typeof payload.userId !== "string" ||
     typeof payload.email !== "string"
   ) {
     throw new Error("Invalid token payload");

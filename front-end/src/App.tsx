@@ -1,8 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { AuthGate, PublicGate } from "./components/RouteGates";
+import { AuthGate, BudgetSetupGate, PublicGate } from "./components/RouteGates";
+import BudgetSetupPage from "./pages/BudgetSetupPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import UserPage from "./pages/UserPage";
 
 export default function App() {
   return (
@@ -12,6 +14,22 @@ export default function App() {
         element={
           <AuthGate>
             <HomePage />
+          </AuthGate>
+        }
+      />
+      <Route
+        path="/setup-budget"
+        element={
+          <BudgetSetupGate>
+            <BudgetSetupPage />
+          </BudgetSetupGate>
+        }
+      />
+      <Route
+        path="/user"
+        element={
+          <AuthGate>
+            <UserPage />
           </AuthGate>
         }
       />
