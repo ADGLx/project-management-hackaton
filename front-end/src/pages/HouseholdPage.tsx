@@ -749,14 +749,11 @@ export default function HouseholdPage() {
                       }}
                     >
                       <label>
-                        Amount (CAD)
+                        Date
                         <input
-                          type="number"
-                          min={0.01}
-                          step={0.01}
-                          inputMode="decimal"
-                          value={transactionAmountDraft}
-                          onChange={(event) => setTransactionAmountDraft(event.target.value)}
+                          type="date"
+                          value={transactionDateDraft}
+                          onChange={(event) => setTransactionDateDraft(event.target.value)}
                           disabled={isSavingTransaction || isExtractingReceipt}
                           required
                         />
@@ -784,6 +781,20 @@ export default function HouseholdPage() {
                       ) : null}
 
                       <label>
+                        Amount (CAD)
+                        <input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          inputMode="decimal"
+                          value={transactionAmountDraft}
+                          onChange={(event) => setTransactionAmountDraft(event.target.value)}
+                          disabled={isSavingTransaction || isExtractingReceipt}
+                          required
+                        />
+                      </label>
+
+                      <label className="transaction-description-field">
                         Description
                         <input
                           type="text"
@@ -791,17 +802,6 @@ export default function HouseholdPage() {
                           onChange={(event) => setTransactionDescriptionDraft(event.target.value)}
                           disabled={isSavingTransaction || isExtractingReceipt}
                           placeholder="Short note about this transaction"
-                          required
-                        />
-                      </label>
-
-                      <label>
-                        Date
-                        <input
-                          type="date"
-                          value={transactionDateDraft}
-                          onChange={(event) => setTransactionDateDraft(event.target.value)}
-                          disabled={isSavingTransaction || isExtractingReceipt}
                           required
                         />
                       </label>
