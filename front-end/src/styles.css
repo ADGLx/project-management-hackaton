@@ -253,6 +253,17 @@ button:disabled {
   letter-spacing: -0.02em;
 }
 
+.dashboard-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.dashboard-title-icon {
+  font-size: 0.88em;
+  color: var(--primary);
+}
+
 .page-title-row {
   display: flex;
   align-items: center;
@@ -309,6 +320,32 @@ button:disabled {
   padding-bottom: 1.1rem;
 }
 
+.budget-summary-card {
+  gap: 0.8rem;
+}
+
+.budget-summary-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.budget-period-value {
+  margin-top: 0.25rem;
+  color: var(--text) !important;
+  font-weight: 700;
+  font-size: 1.02rem;
+}
+
+.budget-summary-label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--muted) !important;
+}
+
 .budget-stats-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -316,21 +353,34 @@ button:disabled {
 }
 
 .budget-main-tile {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--panel-strong);
-  padding: 0.8rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   display: grid;
   align-content: start;
   gap: 0.45rem;
+  text-align: left;
+  justify-items: stretch;
+}
+
+.budget-summary-main {
+  text-align: left;
+  justify-items: stretch;
+}
+
+.budget-summary-main .eyebrow {
   text-align: center;
-  justify-items: center;
+}
+
+.budget-summary-main .budget-value-row {
+  justify-content: center;
 }
 
 .budget-value-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
@@ -399,6 +449,66 @@ button:disabled {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
+}
+
+.budget-summary-progress {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+}
+
+.budget-progress-percent {
+  color: var(--text) !important;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.budget-progress-track {
+  width: 100%;
+  height: 0.68rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--panel) 78%, var(--text) 22%);
+  overflow: hidden;
+}
+
+.budget-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), color-mix(in oklab, var(--primary) 70%, var(--text) 30%));
+}
+
+.budget-amounts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.budget-amount-block {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.budget-amount-block-left {
+  justify-items: start;
+  text-align: left;
+}
+
+.budget-amount-block-right {
+  justify-items: end;
+  text-align: right;
+}
+
+.budget-amount-value {
+  margin-top: 0.25rem;
+  color: var(--text) !important;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .chart-card h2,
@@ -1110,8 +1220,7 @@ button:disabled {
   }
 
   .budget-main-tile {
-    aspect-ratio: 1 / 1;
-    align-content: space-between;
+    align-content: start;
   }
 
   .brand-panel h1 {

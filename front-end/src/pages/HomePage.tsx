@@ -62,6 +62,14 @@ export default function HomePage() {
 
   const currentMonthStart = useMemo(() => currentMonthStartDateString(), []);
   const currentMonthPrefix = currentMonthStart.slice(0, 7);
+  const budgetPeriodLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-CA", {
+        month: "long",
+        year: "numeric",
+      }).format(new Date(currentMonthStart)),
+    [currentMonthStart],
+  );
 
   const spendingByMonth = useMemo(() => {
     const byMonth = new Map<string, number>();
@@ -81,6 +89,7 @@ export default function HomePage() {
     currentMonthBudgetCad !== null && currentMonthBudgetCad > 0 ? (currentMonthSpending / currentMonthBudgetCad) * 100 : null;
   const cappedBudgetUsagePercent = budgetUsagePercent === null ? 0 : Math.min(budgetUsagePercent, 100);
   const isOverBudget = remainingBudgetCad !== null && remainingBudgetCad < 0;
+  const progressPercentLabel = `${cappedBudgetUsagePercent.toFixed(1)}%`;
   const progressChartData = useMemo(
     () => [
       {
@@ -200,23 +209,115 @@ export default function HomePage() {
       <SubscriptionControl />
 
       <section className="page-title-row">
-        <h1>Dashboard</h1>
+        <h1 className="dashboard-title">
+          <span className="dashboard-title-icon" aria-hidden="true">
+            ⚜
+          </span>
+          <span>Coloc Calcul</span>
+        </h1>
       </section>
 
       <section className="dashboard-card overview-card">
-        <div className="overview-section chart-card">
-          <div className="chart-card-toolbar">
-            <p className="chart-card-title">{chartView === "progress" ? "Budget Progress" : "Spending by Type"}</p>
+        <div className="overview-section budget-card budget-summary-card">
+          <div className="budget-summary-header">
+            <div>
+              <p className="budget-summary-label">Budget period</p>
+              <p className="budget-period-value">{budgetPeriodLabel}</p>
+            </div>
             <button
               className="chart-toggle-button secondary-button"
               type="button"
               onClick={() => setChartView((current) => (current === "progress" ? "breakdown" : "progress"))}
-              aria-label={chartView === "progress" ? "Show spending by type" : "Show budget progress"}
-              title={chartView === "progress" ? "Show spending by type" : "Show budget progress"}
+              aria-label={chartView === "progress" ? "Switch to spending by type" : "Switch to budget progress"}
+              title={chartView === "progress" ? "Switch to spending by type" : "Switch to budget progress"}
             >
               <FontAwesomeIcon icon={chartView === "progress" ? faChartPie : faGaugeHigh} />
             </button>
           </div>
+
+          <div className="budget-stats-layout">
+            <div className="budget-main-tile budget-summary-main">
+              <p className="eyebrow">Monthly budget amount</p>
+
+              {isEditingBudget ? (
+                <div className="budget-edit-form">
+                  <div className="budget-edit-row">
+                    <span>CAD $</span>
+                    <input
+                      className="budget-input"
+                      type="number"
+                      min={1}
+                      step={1}
+                      inputMode="numeric"
+                      value={budgetDraft}
+                      onChange={(event) => setBudgetDraft(event.target.value)}
+                      disabled={isSavingBudget}
+                    />
+                  </div>
+
+                  <div className="budget-actions">
+                    <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
+                      {isSavingBudget ? "Saving..." : "Save"}
+                    </button>
+                    <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
+                      Cancel
+                    </button>
+                  </div>
+
+                  {budgetError ? <p className="feedback error">{budgetError}</p> : null}
+                </div>
+              ) : (
+                <div className="budget-value-row">
+                  <p className="budget-value">{formattedBudget}</p>
+                  <button
+                    className="budget-edit-button secondary-button"
+                    type="button"
+                    onClick={startEditingBudget}
+                    aria-label="Edit monthly budget"
+                    title="Edit monthly budget"
+                  >
+                    <FontAwesomeIcon icon={faPenToSquare} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="budget-summary-progress">
+              <p className="budget-progress-percent">{progressPercentLabel}</p>
+
+              <div
+                className="budget-progress-track"
+                role="progressbar"
+                aria-label="Budget usage"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Number(cappedBudgetUsagePercent.toFixed(1))}
+              >
+                <span className="budget-progress-fill" style={{ width: `${cappedBudgetUsagePercent}%` }} />
+              </div>
+
+              <div className="budget-amounts-row">
+                <div className="budget-amount-block budget-amount-block-left">
+                  <p className="budget-summary-label">Spent</p>
+                  <p className="budget-amount-value">{formattedCurrency.format(currentMonthSpending)}</p>
+                </div>
+                <div className="budget-amount-block budget-amount-block-right">
+                  <p className="budget-summary-label">Left</p>
+                  <p className="budget-amount-value">
+                    {remainingBudgetCad === null ? "Not set" : formattedCurrency.format(Math.max(remainingBudgetCad, 0))}
+                  </p>
+                </div>
+              </div>
+
+              {isOverBudget && remainingBudgetCad !== null ? (
+                <p className="budget-progress-note">Over by {formattedCurrency.format(Math.abs(remainingBudgetCad))}</p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="overview-section chart-card">
+          <p className="chart-card-title">{chartView === "progress" ? "Budget Progress" : "Spending by Type"}</p>
 
           {chartView === "progress" ? (
             currentMonthBudgetCad !== null && currentMonthBudgetCad > 0 ? (
@@ -272,55 +373,6 @@ export default function HomePage() {
           ) : (
             <p>No transactions in the current month to show type breakdown.</p>
           )}
-        </div>
-        <div className="overview-section budget-card">
-          <div className="budget-stats-layout">
-            <div className="budget-main-tile">
-              <p className="eyebrow">Monthly Budget</p>
-
-              {isEditingBudget ? (
-                <div className="budget-edit-form">
-                  <div className="budget-edit-row">
-                    <span>CAD $</span>
-                    <input
-                      className="budget-input"
-                      type="number"
-                      min={1}
-                      step={1}
-                      inputMode="numeric"
-                      value={budgetDraft}
-                      onChange={(event) => setBudgetDraft(event.target.value)}
-                      disabled={isSavingBudget}
-                    />
-                  </div>
-
-                  <div className="budget-actions">
-                    <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
-                      {isSavingBudget ? "Saving..." : "Save"}
-                    </button>
-                    <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
-                      Cancel
-                    </button>
-                  </div>
-
-                  {budgetError ? <p className="feedback error">{budgetError}</p> : null}
-                </div>
-              ) : (
-                <div className="budget-value-row">
-                  <p className="budget-value">{formattedBudget}</p>
-                  <button
-                    className="budget-edit-button secondary-button"
-                    type="button"
-                    onClick={startEditingBudget}
-                    aria-label="Edit monthly budget"
-                    title="Edit monthly budget"
-                  >
-                    <FontAwesomeIcon icon={faPenToSquare} />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </section>
 
