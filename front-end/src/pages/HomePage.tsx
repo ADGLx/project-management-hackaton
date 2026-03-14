@@ -6,7 +6,6 @@ import AddTransactionFab from "../components/AddTransactionFab";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { getMyTransactionHistory, getMyTransactions } from "../lib/api";
 import MobileNav from "../components/MobileNav";
-import SubscriptionControl from "../components/SubscriptionControl";
 import { useAuth } from "../state/AuthContext";
 import type { MonthlySpendingPoint, UserTransaction } from "../types/auth";
 
@@ -204,8 +203,6 @@ export default function HomePage() {
 
   return (
     <main className="home-shell">
-      <SubscriptionControl />
-
       <section className="page-title-row">
         <h1 className="dashboard-title">
           <span className="dashboard-title-icon" aria-hidden="true">

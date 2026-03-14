@@ -953,9 +953,6 @@ button:disabled {
 }
 
 .subscription-trigger {
-  position: fixed;
-  top: calc(0.7rem + env(safe-area-inset-top, 0px));
-  right: clamp(0.75rem, 3vw, 1.4rem);
   width: 2.7rem;
   height: 2.7rem;
   min-width: 2.7rem;
@@ -966,6 +963,43 @@ button:disabled {
   z-index: 27;
   font-size: 1.05rem;
   backdrop-filter: blur(8px);
+}
+
+.top-right-controls {
+  position: fixed;
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
+  right: clamp(0.75rem, 3vw, 1.4rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 27;
+}
+
+.alert-trigger {
+  position: relative;
+}
+
+.alert-icon-wrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.alert-badge {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.6rem;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: var(--error);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  padding: 0 0.22rem;
 }
 
 .subscription-trigger.is-subscribed {
@@ -984,7 +1018,7 @@ button:disabled {
   right: 0.5rem;
   bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.4rem;
   padding: 0.4rem;
   border: 1px solid var(--border);
@@ -1005,35 +1039,6 @@ button:disabled {
   font-size: 0.83rem;
   font-weight: 700;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.mobile-nav-alert-button {
-  padding: 0;
-  box-shadow: none;
-  background: transparent;
-}
-
-.mobile-nav-alert-icon-wrap {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-}
-
-.mobile-nav-alert-badge {
-  position: absolute;
-  top: -0.45rem;
-  right: -0.6rem;
-  min-width: 1.05rem;
-  height: 1.05rem;
-  border-radius: 999px;
-  background: var(--error);
-  color: #ffffff;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1;
-  display: grid;
-  place-items: center;
-  padding: 0 0.22rem;
 }
 
 .mobile-nav-icon {
