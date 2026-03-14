@@ -12,7 +12,7 @@ const navItems = [
   { to: "/user", icon: faUser, label: "Profile" },
 ];
 
-const ALERT_POLL_INTERVAL_MS = 30_000;
+const ALERT_POLL_INTERVAL_MS = 5_000;
 
 function formatAlertTimestamp(value: string): string {
   const date = new Date(value);
