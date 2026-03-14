@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCamera, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import MobileNav from "../components/MobileNav";
+import PageSidePanel from "../components/PageSidePanel";
 import {
   createMyHousehold,
   createMyHouseholdTransaction,
@@ -536,7 +537,13 @@ export default function HouseholdPage() {
   return (
     <main className="home-shell">
       <section className="page-title-row page-title-actions">
-        <h1>Household</h1>
+        <h1 className="dashboard-title">
+          <PageSidePanel />
+          <span className="dashboard-title-icon" aria-hidden="true">
+            ⚜
+          </span>
+          <span>Household</span>
+        </h1>
         {household ? (
           <button className="secondary-button" type="button" onClick={() => setIsHouseholdInfoModalOpen(true)}>
             Household Info

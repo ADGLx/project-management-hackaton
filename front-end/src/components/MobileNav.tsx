@@ -1,12 +1,12 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChartColumn, faHouse, faReceipt, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faChartColumn, faClockRotateLeft, faHouse, faWallet } from "@fortawesome/free-solid-svg-icons";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
   { to: "/", icon: faChartColumn, label: "Dashboard" },
-  { to: "/transactions", icon: faReceipt, label: "Transactions" },
   { to: "/household", icon: faHouse, label: "Household" },
-  { to: "/user", icon: faUser, label: "Profile" },
+  { to: "/budget", icon: faWallet, label: "Budget" },
+  { to: "/transactions", icon: faClockRotateLeft, label: "History" },
 ];
 
 export default function MobileNav() {

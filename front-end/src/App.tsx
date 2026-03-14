@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthGate, BudgetSetupGate, PublicGate } from "./components/RouteGates";
 import TopRightControls from "./components/TopRightControls";
+import BudgetPage from "./pages/BudgetPage";
 import BudgetSetupPage from "./pages/BudgetSetupPage";
 import HomePage from "./pages/HomePage";
 import HouseholdPage from "./pages/HouseholdPage";
@@ -35,6 +36,14 @@ export default function App() {
           element={
             <AuthGate>
               <UserPage />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/budget"
+          element={
+            <AuthGate>
+              <BudgetPage />
             </AuthGate>
           }
         />

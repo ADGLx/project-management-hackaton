@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
+import PageSidePanel from "../components/PageSidePanel";
 import { createMyTransactionType, deleteMyTransactionType, getMyTransactionTypes } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
 import type { TransactionType } from "../types/auth";
@@ -81,7 +82,13 @@ export default function UserPage() {
   return (
     <main className="home-shell">
       <section className="page-title-row page-title-actions">
-        <h1>{user?.name ?? "Profile"}</h1>
+        <h1 className="dashboard-title">
+          <PageSidePanel />
+          <span className="dashboard-title-icon" aria-hidden="true">
+            ⚜
+          </span>
+          <span>{user?.name ?? "Profile"}</span>
+        </h1>
         <button className="secondary-button" type="button" onClick={onLogout}>
           Logout
         </button>

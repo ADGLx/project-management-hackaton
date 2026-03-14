@@ -6,6 +6,7 @@ import AddTransactionFab from "../components/AddTransactionFab";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { getMyTransactionHistory, getMyTransactions } from "../lib/api";
 import MobileNav from "../components/MobileNav";
+import PageSidePanel from "../components/PageSidePanel";
 import { useAuth } from "../state/AuthContext";
 import type { MonthlySpendingPoint, UserTransaction } from "../types/auth";
 
@@ -205,6 +206,7 @@ export default function HomePage() {
     <main className="home-shell">
       <section className="page-title-row">
         <h1 className="dashboard-title">
+          <PageSidePanel />
           <span className="dashboard-title-icon" aria-hidden="true">
             ⚜
           </span>

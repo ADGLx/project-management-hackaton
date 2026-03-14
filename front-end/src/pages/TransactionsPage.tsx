@@ -5,6 +5,7 @@ import { faCamera, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-soli
 import { useSearchParams } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
+import PageSidePanel from "../components/PageSidePanel";
 import {
   createMyTransaction,
   deleteMyTransaction,
@@ -382,7 +383,13 @@ export default function TransactionsPage() {
   return (
     <main className="home-shell">
       <section className="page-title-row page-title-actions">
-        <h1>Transactions</h1>
+        <h1 className="dashboard-title">
+          <PageSidePanel />
+          <span className="dashboard-title-icon" aria-hidden="true">
+            ⚜
+          </span>
+          <span>Transactions</span>
+        </h1>
         <button className="compact-primary-button" type="button" onClick={openTransactionModal}>
           Add Transaction
         </button>

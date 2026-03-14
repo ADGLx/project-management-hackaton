@@ -1131,6 +1131,47 @@ button:disabled {
   outline-offset: 2px;
 }
 
+.side-panel-trigger {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  border-radius: 10px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.side-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 22, 0.45);
+  z-index: 31;
+}
+
+.side-panel-sheet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: min(300px, 82vw);
+  border-right: 1px solid var(--border);
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+  padding: calc(1.1rem + env(safe-area-inset-top, 0px)) 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+.side-panel-actions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.side-panel-action {
+  width: 100%;
+  text-align: left;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
