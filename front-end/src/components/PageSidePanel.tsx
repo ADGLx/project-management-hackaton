@@ -2,11 +2,25 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 
+type ThemeMode = "light" | "dark";
+
+const themeStorageKey = "coloc-theme";
+
+function detectInitialTheme(): ThemeMode {
+  const savedTheme = window.localStorage.getItem(themeStorageKey);
+  if (savedTheme === "light" || savedTheme === "dark") {
+    return savedTheme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export default function PageSidePanel() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => detectInitialTheme());
 
   useEffect(() => {
     setIsOpen(false);
@@ -27,9 +41,18 @@ export default function PageSidePanel() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    window.localStorage.setItem(themeStorageKey, themeMode);
+  }, [themeMode]);
+
   async function onLogout() {
     await logout();
     navigate("/login");
+  }
+
+  function toggleThemeMode() {
+    setThemeMode((current) => (current === "dark" ? "light" : "dark"));
   }
 
   return (
@@ -54,9 +77,15 @@ export default function PageSidePanel() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="side-panel-header">
-              <span className="side-panel-brand-icon" aria-hidden="true">
-                ⚜
-              </span>
+              <button
+                className="secondary-button side-panel-theme-toggle"
+                type="button"
+                onClick={toggleThemeMode}
+                aria-label={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                title={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                <span aria-hidden="true">{themeMode === "dark" ? "☀" : "🌙"}</span>
+              </button>
               <button
                 className="secondary-button side-panel-close"
                 type="button"
