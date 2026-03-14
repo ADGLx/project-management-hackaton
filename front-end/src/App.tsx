@@ -4,6 +4,7 @@ import BudgetSetupPage from "./pages/BudgetSetupPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import UserPage from "./pages/UserPage";
 
 export default function App() {
   return (
@@ -22,6 +23,14 @@ export default function App() {
           <BudgetSetupGate>
             <BudgetSetupPage />
           </BudgetSetupGate>
+        }
+      />
+      <Route
+        path="/user"
+        element={
+          <AuthGate>
+            <UserPage />
+          </AuthGate>
         }
       />
       <Route

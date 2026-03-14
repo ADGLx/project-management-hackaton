@@ -41,7 +41,13 @@ export interface UserTransaction {
   id: string;
   amountCad: number;
   type: string;
+  description: string;
   transactionDate: string;
+}
+
+export interface TransactionType {
+  id: string;
+  name: string;
 }
 
 export interface MonthlySpendingPoint {
@@ -73,6 +79,20 @@ export interface TransactionDeleteSuccess {
   ok: true;
 }
 
+export interface TransactionTypesFetchSuccess {
+  ok: true;
+  transactionTypes: TransactionType[];
+}
+
+export interface TransactionTypeCreateSuccess {
+  ok: true;
+  transactionType: TransactionType;
+}
+
+export interface TransactionTypeDeleteSuccess {
+  ok: true;
+}
+
 export type BudgetFetchResult = BudgetFetchSuccess | AuthFailure;
 export type BudgetSaveResult = BudgetSaveSuccess | AuthFailure;
 export type BudgetHistoryResult = BudgetHistorySuccess | AuthFailure;
@@ -81,6 +101,9 @@ export type TransactionCreateResult = TransactionCreateSuccess | AuthFailure;
 export type TransactionHistoryResult = TransactionHistorySuccess | AuthFailure;
 export type TransactionUpdateResult = TransactionUpdateSuccess | AuthFailure;
 export type TransactionDeleteResult = TransactionDeleteSuccess | AuthFailure;
+export type TransactionTypesFetchResult = TransactionTypesFetchSuccess | AuthFailure;
+export type TransactionTypeCreateResult = TransactionTypeCreateSuccess | AuthFailure;
+export type TransactionTypeDeleteResult = TransactionTypeDeleteSuccess | AuthFailure;
 
 export interface AuthContextValue {
   user: User | null;
@@ -133,6 +156,21 @@ export interface TransactionUpdateResponseBody {
 }
 
 export interface TransactionDeleteResponseBody {
+  ok?: boolean;
+  message?: string;
+}
+
+export interface TransactionTypesResponseBody {
+  transactionTypes?: TransactionType[];
+  message?: string;
+}
+
+export interface TransactionTypeCreateResponseBody {
+  transactionType?: TransactionType;
+  message?: string;
+}
+
+export interface TransactionTypeDeleteResponseBody {
   ok?: boolean;
   message?: string;
 }

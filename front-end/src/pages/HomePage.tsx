@@ -4,13 +4,14 @@ import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, T
 import {
   createMyTransaction,
   deleteMyTransaction,
+  getMyTransactionTypes,
   getMyMonthlyBudgetHistory,
   getMyTransactionHistory,
   getMyTransactions,
   updateMyTransaction,
 } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
-import type { BudgetHistoryPoint, MonthlySpendingPoint, UserTransaction } from "../types/auth";
+import type { BudgetHistoryPoint, MonthlySpendingPoint, TransactionType, UserTransaction } from "../types/auth";
 
 function nameFromEmail(email?: string): string {
   if (!email) {
@@ -70,6 +71,7 @@ export default function HomePage() {
   const [budgetHistory, setBudgetHistory] = useState<BudgetHistoryPoint[]>([]);
   const [spendingHistory, setSpendingHistory] = useState<MonthlySpendingPoint[]>([]);
   const [transactions, setTransactions] = useState<UserTransaction[]>([]);
+  const [transactionTypes, setTransactionTypes] = useState<TransactionType[]>([]);
   const [dataError, setDataError] = useState("");
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState("");
@@ -82,6 +84,7 @@ export default function HomePage() {
   const [transactionError, setTransactionError] = useState("");
   const [transactionAmountDraft, setTransactionAmountDraft] = useState("");
   const [transactionTypeDraft, setTransactionTypeDraft] = useState("");
+  const [transactionDescriptionDraft, setTransactionDescriptionDraft] = useState("");
   const [transactionDateDraft, setTransactionDateDraft] = useState(todayAsDateInputValue);
   const displayName = user?.name || profileName || nameFromEmail(user?.email);
   const formattedBudget =
@@ -129,12 +132,23 @@ export default function HomePage() {
     return Array.from(byMonth.values()).sort((left, right) => monthSortKey(left.monthStart) - monthSortKey(right.monthStart));
   }, [budgetHistory, spendingHistory]);
 
+  const modalTypeOptions = useMemo(() => {
+    const fromServer = transactionTypes.map((transactionType) => transactionType.name);
+
+    if (editingTransactionId && transactionTypeDraft && !fromServer.includes(transactionTypeDraft)) {
+      return [transactionTypeDraft, ...fromServer];
+    }
+
+    return fromServer;
+  }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
+
   async function loadDashboardData() {
     setDataError("");
-    const [budgetHistoryResult, spendingHistoryResult, transactionsResult] = await Promise.all([
+    const [budgetHistoryResult, spendingHistoryResult, transactionsResult, transactionTypesResult] = await Promise.all([
       getMyMonthlyBudgetHistory(),
       getMyTransactionHistory(),
       getMyTransactions(),
+      getMyTransactionTypes(),
     ]);
 
     if (budgetHistoryResult.ok) {
@@ -149,7 +163,11 @@ export default function HomePage() {
       setTransactions(transactionsResult.transactions);
     }
 
-    if (!budgetHistoryResult.ok || !spendingHistoryResult.ok || !transactionsResult.ok) {
+    if (transactionTypesResult.ok) {
+      setTransactionTypes(transactionTypesResult.transactionTypes);
+    }
+
+    if (!budgetHistoryResult.ok || !spendingHistoryResult.ok || !transactionsResult.ok || !transactionTypesResult.ok) {
       setDataError("Some dashboard data could not be loaded right now.");
     }
   }
@@ -162,10 +180,11 @@ export default function HomePage() {
         return;
       }
 
-      const [budgetHistoryResult, spendingHistoryResult, transactionsResult] = await Promise.all([
+      const [budgetHistoryResult, spendingHistoryResult, transactionsResult, transactionTypesResult] = await Promise.all([
         getMyMonthlyBudgetHistory(),
         getMyTransactionHistory(),
         getMyTransactions(),
+        getMyTransactionTypes(),
       ]);
 
       if (!isMounted) {
@@ -184,7 +203,11 @@ export default function HomePage() {
         setTransactions(transactionsResult.transactions);
       }
 
-      if (!budgetHistoryResult.ok || !spendingHistoryResult.ok || !transactionsResult.ok) {
+      if (transactionTypesResult.ok) {
+        setTransactionTypes(transactionTypesResult.transactionTypes);
+      }
+
+      if (!budgetHistoryResult.ok || !spendingHistoryResult.ok || !transactionsResult.ok || !transactionTypesResult.ok) {
         setDataError("Some dashboard data could not be loaded right now.");
       }
     }
@@ -220,6 +243,10 @@ export default function HomePage() {
   async function onLogout() {
     await logout();
     navigate("/login");
+  }
+
+  function onOpenUserPage() {
+    navigate("/user");
   }
 
   async function onSaveBudget() {
@@ -261,7 +288,8 @@ export default function HomePage() {
   function openTransactionModal() {
     setTransactionError("");
     setTransactionAmountDraft("");
-    setTransactionTypeDraft("");
+    setTransactionTypeDraft(transactionTypes[0]?.name ?? "");
+    setTransactionDescriptionDraft("");
     setTransactionDateDraft(todayAsDateInputValue());
     setEditingTransactionId(null);
     setIsTransactionModalOpen(true);
@@ -271,6 +299,7 @@ export default function HomePage() {
     setTransactionError("");
     setTransactionAmountDraft(String(transaction.amountCad));
     setTransactionTypeDraft(transaction.type);
+    setTransactionDescriptionDraft(transaction.description);
     setTransactionDateDraft(transaction.transactionDate);
     setEditingTransactionId(transaction.id);
     setIsTransactionModalOpen(true);
@@ -300,6 +329,11 @@ export default function HomePage() {
       return;
     }
 
+    if (!transactionDescriptionDraft.trim()) {
+      setTransactionError("Description is required.");
+      return;
+    }
+
     if (!/^\d{4}-\d{2}-\d{2}$/.test(transactionDateDraft)) {
       setTransactionError("Date must be in YYYY-MM-DD format.");
       return;
@@ -309,6 +343,7 @@ export default function HomePage() {
     const payload = {
       amountCad,
       type: transactionTypeDraft.trim(),
+      description: transactionDescriptionDraft.trim(),
       transactionDate: transactionDateDraft,
     };
     const result = editingTransactionId ? await updateMyTransaction(editingTransactionId, payload) : await createMyTransaction(payload);
@@ -349,9 +384,14 @@ export default function HomePage() {
           <p className="dashboard-description">Track your budget against real spending and keep every transaction in one place for clear monthly visibility.</p>
         </div>
 
-        <button className="secondary-button" type="button" onClick={onLogout}>
-          Logout
-        </button>
+        <div className="header-actions">
+          <button className="secondary-button" type="button" onClick={onOpenUserPage}>
+            User page
+          </button>
+          <button className="secondary-button" type="button" onClick={onLogout}>
+            Logout
+          </button>
+        </div>
       </section>
 
       <section className="dashboard-card overview-card">
@@ -432,6 +472,7 @@ export default function HomePage() {
                 <article className="transaction-row" role="listitem" key={transaction.id}>
                   <div>
                     <p className="transaction-merchant">{transaction.type}</p>
+                    <p className="transaction-meta">{transaction.description}</p>
                   </div>
 
                   <div className="transaction-right">
@@ -506,12 +547,33 @@ export default function HomePage() {
 
               <label>
                 Type
-                <input
-                  type="text"
+                <select
                   value={transactionTypeDraft}
                   onChange={(event) => setTransactionTypeDraft(event.target.value)}
+                  disabled={isSavingTransaction || modalTypeOptions.length === 0}
+                  required
+                >
+                  {modalTypeOptions.length === 0 ? <option value="">No types available</option> : null}
+                  {modalTypeOptions.map((typeName) => (
+                    <option key={typeName} value={typeName}>
+                      {typeName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {modalTypeOptions.length === 0 ? (
+                <p className="feedback error">No transaction types found. Add one in your user page first.</p>
+              ) : null}
+
+              <label>
+                Description
+                <input
+                  type="text"
+                  value={transactionDescriptionDraft}
+                  onChange={(event) => setTransactionDescriptionDraft(event.target.value)}
                   disabled={isSavingTransaction}
-                  placeholder="e.g. groceries, tools, payroll"
+                  placeholder="Short note about this transaction"
                   required
                 />
               </label>
@@ -530,7 +592,7 @@ export default function HomePage() {
               {transactionError ? <p className="feedback error">{transactionError}</p> : null}
 
               <div className="modal-actions">
-                <button type="submit" disabled={isSavingTransaction}>
+                <button type="submit" disabled={isSavingTransaction || modalTypeOptions.length === 0}>
                   {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
                 </button>
                 <button className="secondary-button" type="button" onClick={closeTransactionModal} disabled={isSavingTransaction}>

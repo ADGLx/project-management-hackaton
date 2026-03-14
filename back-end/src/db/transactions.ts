@@ -4,6 +4,7 @@ interface TransactionRow {
   id: string;
   amount_cad: number;
   type: string;
+  description: string;
   transaction_date: string;
 }
 
@@ -16,6 +17,7 @@ export interface UserTransaction {
   id: string;
   amountCad: number;
   type: string;
+  description: string;
   transactionDate: string;
 }
 
@@ -29,24 +31,31 @@ function mapTransactionRow(row: TransactionRow): UserTransaction {
     id: row.id,
     amountCad: row.amount_cad,
     type: row.type,
+    description: row.description,
     transactionDate: row.transaction_date,
   };
 }
 
-export async function createUserTransaction(userId: string, amountCad: number, type: string, transactionDate: string): Promise<UserTransaction> {
+export async function createUserTransaction(
+  userId: string,
+  amountCad: number,
+  type: string,
+  description: string,
+  transactionDate: string,
+): Promise<UserTransaction> {
   const query = `
-    INSERT INTO transactions (user_id, amount_cad, type, transaction_date)
-    VALUES ($1, $2, $3, $4)
-    RETURNING id, amount_cad, type, transaction_date::text
+    INSERT INTO transactions (user_id, amount_cad, type, description, transaction_date)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, amount_cad, type, description, transaction_date::text
   `;
 
-  const result = await pool.query<TransactionRow>(query, [userId, amountCad, type, transactionDate]);
+  const result = await pool.query<TransactionRow>(query, [userId, amountCad, type, description, transactionDate]);
   return mapTransactionRow(result.rows[0]);
 }
 
 export async function getUserTransactions(userId: string, limit = 100): Promise<UserTransaction[]> {
   const query = `
-    SELECT id, amount_cad, type, transaction_date::text
+    SELECT id, amount_cad, type, description, transaction_date::text
     FROM transactions
     WHERE user_id = $1
     ORDER BY transaction_date DESC, created_at DESC
@@ -63,19 +72,21 @@ export async function updateUserTransaction(
   transactionId: string,
   amountCad: number,
   type: string,
+  description: string,
   transactionDate: string,
 ): Promise<UserTransaction | null> {
   const query = `
     UPDATE transactions
     SET amount_cad = $3,
         type = $4,
-        transaction_date = $5
+        description = $5,
+        transaction_date = $6
     WHERE user_id = $1
       AND id = $2
-    RETURNING id, amount_cad, type, transaction_date::text
+    RETURNING id, amount_cad, type, description, transaction_date::text
   `;
 
-  const result = await pool.query<TransactionRow>(query, [userId, transactionId, amountCad, type, transactionDate]);
+  const result = await pool.query<TransactionRow>(query, [userId, transactionId, amountCad, type, description, transactionDate]);
   const row = result.rows[0];
 
   if (!row) {

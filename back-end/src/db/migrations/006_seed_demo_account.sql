@@ -33,20 +33,20 @@ BEGIN
   ON CONFLICT (user_id, month_start)
   DO UPDATE SET budget_amount_cad = EXCLUDED.budget_amount_cad;
 
-  INSERT INTO transactions (user_id, amount_cad, type, transaction_date)
+  INSERT INTO transactions (user_id, amount_cad, type, description, transaction_date)
   VALUES
-    (demo_user_id, 122.45, 'groceries', (date_trunc('month', now())::date - INTERVAL '3 months' + INTERVAL '2 days')::date),
-    (demo_user_id, 64.30, 'transport', (date_trunc('month', now())::date - INTERVAL '3 months' + INTERVAL '8 days')::date),
-    (demo_user_id, 210.00, 'utilities', (date_trunc('month', now())::date - INTERVAL '3 months' + INTERVAL '14 days')::date),
-    (demo_user_id, 399.99, 'software tools', (date_trunc('month', now())::date - INTERVAL '2 months' + INTERVAL '4 days')::date),
-    (demo_user_id, 87.25, 'team lunch', (date_trunc('month', now())::date - INTERVAL '2 months' + INTERVAL '9 days')::date),
-    (demo_user_id, 150.50, 'equipment', (date_trunc('month', now())::date - INTERVAL '2 months' + INTERVAL '17 days')::date),
-    (demo_user_id, 49.99, 'subscriptions', (date_trunc('month', now())::date - INTERVAL '1 month' + INTERVAL '3 days')::date),
-    (demo_user_id, 305.10, 'travel', (date_trunc('month', now())::date - INTERVAL '1 month' + INTERVAL '7 days')::date),
-    (demo_user_id, 96.40, 'marketing', (date_trunc('month', now())::date - INTERVAL '1 month' + INTERVAL '16 days')::date),
-    (demo_user_id, 33.75, 'coffee', (date_trunc('month', now())::date + INTERVAL '1 days')::date),
-    (demo_user_id, 275.20, 'cloud hosting', (date_trunc('month', now())::date + INTERVAL '5 days')::date),
-    (demo_user_id, 18.99, 'domain renewal', (date_trunc('month', now())::date + INTERVAL '9 days')::date),
-    (demo_user_id, 142.00, 'events', (date_trunc('month', now())::date + INTERVAL '12 days')::date)
+    (demo_user_id, 122.45, 'Food', 'weekly grocery run', (date_trunc('month', now())::date - INTERVAL '3 months' + INTERVAL '2 days')::date),
+    (demo_user_id, 64.30, 'Transport', 'ride shares and transit', (date_trunc('month', now())::date - INTERVAL '3 months' + INTERVAL '8 days')::date),
+    (demo_user_id, 210.00, 'Utilities', 'internet and power bills', (date_trunc('month', now())::date - INTERVAL '3 months' + INTERVAL '14 days')::date),
+    (demo_user_id, 399.99, 'Education', 'online course subscription', (date_trunc('month', now())::date - INTERVAL '2 months' + INTERVAL '4 days')::date),
+    (demo_user_id, 87.25, 'Food', 'team lunch', (date_trunc('month', now())::date - INTERVAL '2 months' + INTERVAL '9 days')::date),
+    (demo_user_id, 150.50, 'Shopping', 'equipment accessories', (date_trunc('month', now())::date - INTERVAL '2 months' + INTERVAL '17 days')::date),
+    (demo_user_id, 49.99, 'Entertainment', 'streaming subscriptions', (date_trunc('month', now())::date - INTERVAL '1 month' + INTERVAL '3 days')::date),
+    (demo_user_id, 305.10, 'Travel', 'regional travel expense', (date_trunc('month', now())::date - INTERVAL '1 month' + INTERVAL '7 days')::date),
+    (demo_user_id, 96.40, 'Shopping', 'marketing materials', (date_trunc('month', now())::date - INTERVAL '1 month' + INTERVAL '16 days')::date),
+    (demo_user_id, 33.75, 'Food', 'coffee and snacks', (date_trunc('month', now())::date + INTERVAL '1 days')::date),
+    (demo_user_id, 275.20, 'Housing', 'workspace hosting cost', (date_trunc('month', now())::date + INTERVAL '5 days')::date),
+    (demo_user_id, 18.99, 'Utilities', 'domain renewal', (date_trunc('month', now())::date + INTERVAL '9 days')::date),
+    (demo_user_id, 142.00, 'Entertainment', 'community event tickets', (date_trunc('month', now())::date + INTERVAL '12 days')::date)
   ON CONFLICT DO NOTHING;
 END $$;

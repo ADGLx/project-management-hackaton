@@ -13,6 +13,7 @@ const router = Router();
 interface SaveTransactionBody {
   amountCad?: unknown;
   type?: unknown;
+  description?: unknown;
   transactionDate?: unknown;
 }
 
@@ -63,6 +64,19 @@ function parseTransactionDate(value: unknown): string | null {
   return value;
 }
 
+function parseDescription(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 function parseTransactionId(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -85,6 +99,7 @@ router.post("/me", requireAuth, async (req, res) => {
   const body = (req.body ?? {}) as SaveTransactionBody;
   const amountCad = parseAmount(body.amountCad);
   const type = parseType(body.type);
+  const description = parseDescription(body.description);
   const transactionDate = parseTransactionDate(body.transactionDate);
 
   if (amountCad === null) {
@@ -102,8 +117,13 @@ router.post("/me", requireAuth, async (req, res) => {
     return;
   }
 
+  if (!description) {
+    res.status(400).json({ message: "Description is required" });
+    return;
+  }
+
   try {
-    const transaction = await createUserTransaction(String(req.auth.userId), amountCad, type, transactionDate);
+    const transaction = await createUserTransaction(String(req.auth.userId), amountCad, type, description, transactionDate);
     res.status(201).json({ transaction });
   } catch {
     res.status(500).json({ message: "Failed to save transaction" });
@@ -134,6 +154,7 @@ router.put("/me/:transactionId", requireAuth, async (req, res) => {
   const body = (req.body ?? {}) as SaveTransactionBody;
   const amountCad = parseAmount(body.amountCad);
   const type = parseType(body.type);
+  const description = parseDescription(body.description);
   const transactionDate = parseTransactionDate(body.transactionDate);
 
   if (!transactionId) {
@@ -156,8 +177,13 @@ router.put("/me/:transactionId", requireAuth, async (req, res) => {
     return;
   }
 
+  if (!description) {
+    res.status(400).json({ message: "Description is required" });
+    return;
+  }
+
   try {
-    const transaction = await updateUserTransaction(String(req.auth.userId), transactionId, amountCad, type, transactionDate);
+    const transaction = await updateUserTransaction(String(req.auth.userId), transactionId, amountCad, type, description, transactionDate);
 
     if (!transaction) {
       res.status(404).json({ message: "Transaction not found" });

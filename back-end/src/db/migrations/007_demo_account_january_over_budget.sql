@@ -20,7 +20,7 @@ BEGIN
   ON CONFLICT (user_id, month_start)
   DO UPDATE SET budget_amount_cad = EXCLUDED.budget_amount_cad;
 
-  INSERT INTO transactions (user_id, amount_cad, type, transaction_date)
-  VALUES (demo_user_id, 3800.00, 'january showcase spike', (jan_month_start + INTERVAL '18 days')::date)
+  INSERT INTO transactions (user_id, amount_cad, type, description, transaction_date)
+  VALUES (demo_user_id, 3800.00, 'Travel', 'january showcase spike', (jan_month_start + INTERVAL '18 days')::date)
   ON CONFLICT DO NOTHING;
 END $$;

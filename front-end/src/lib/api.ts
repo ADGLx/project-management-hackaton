@@ -14,6 +14,12 @@ import type {
   TransactionHistoryResult,
   TransactionListResponseBody,
   TransactionListResult,
+  TransactionTypeCreateResponseBody,
+  TransactionTypeCreateResult,
+  TransactionTypeDeleteResponseBody,
+  TransactionTypeDeleteResult,
+  TransactionTypesFetchResult,
+  TransactionTypesResponseBody,
   TransactionUpdateResponseBody,
   TransactionUpdateResult,
   User,
@@ -213,6 +219,7 @@ export async function getMyMonthlyBudgetHistory(): Promise<BudgetHistoryResult> 
 export interface UpsertTransactionPayload {
   amountCad: number;
   type: string;
+  description: string;
   transactionDate: string;
 }
 
@@ -384,6 +391,110 @@ export async function getMyTransactionHistory(): Promise<TransactionHistoryResul
       ok: true,
       history: data.history,
     };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyTransactionTypes(): Promise<TransactionTypesFetchResult> {
+  try {
+    const response = await fetch(`${API_URL}/transaction-types/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<TransactionTypesResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load transaction types",
+      };
+    }
+
+    if (!Array.isArray(data?.transactionTypes)) {
+      return {
+        ok: false,
+        message: "Server returned an invalid transaction types response",
+      };
+    }
+
+    return {
+      ok: true,
+      transactionTypes: data.transactionTypes,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function createMyTransactionType(name: string): Promise<TransactionTypeCreateResult> {
+  try {
+    const response = await fetch(`${API_URL}/transaction-types/me`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name }),
+    });
+
+    const data = await readJson<TransactionTypeCreateResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to create transaction type",
+      };
+    }
+
+    if (!data?.transactionType) {
+      return {
+        ok: false,
+        message: "Server returned an invalid transaction type response",
+      };
+    }
+
+    return {
+      ok: true,
+      transactionType: data.transactionType,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function deleteMyTransactionType(typeId: string): Promise<TransactionTypeDeleteResult> {
+  try {
+    const response = await fetch(`${API_URL}/transaction-types/me/${typeId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const data = await readJson<TransactionTypeDeleteResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to delete transaction type",
+      };
+    }
+
+    if (!data?.ok) {
+      return {
+        ok: false,
+        message: "Server returned an invalid delete response",
+      };
+    }
+
+    return { ok: true };
   } catch (error) {
     return {
       ok: false,
