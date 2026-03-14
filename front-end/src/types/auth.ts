@@ -126,16 +126,6 @@ export interface HouseholdLeaveSuccess {
   ok: true;
 }
 
-export interface HouseholdBudgetFetchSuccess {
-  ok: true;
-  budgetAmountCad: number | null;
-}
-
-export interface HouseholdBudgetSaveSuccess {
-  ok: true;
-  budgetAmountCad: number;
-}
-
 export interface HouseholdTransaction {
   id: string;
   amountCad: number;
@@ -144,6 +134,24 @@ export interface HouseholdTransaction {
   transactionDate: string;
   createdByUserId: string;
   createdByName: string;
+  participants: HouseholdTransactionParticipant[];
+}
+
+export interface HouseholdTransactionParticipant {
+  userId: string;
+  name: string;
+}
+
+export interface HouseholdSettlementLine {
+  toUserId: string;
+  toName: string;
+  amountCad: number;
+}
+
+export interface HouseholdSettlementSummary {
+  month: string;
+  totalPaidByCurrentUserCad: number;
+  youOwe: HouseholdSettlementLine[];
 }
 
 export interface HouseholdTransactionListSuccess {
@@ -165,6 +173,11 @@ export interface HouseholdTransactionDeleteSuccess {
   ok: true;
 }
 
+export interface HouseholdSettlementFetchSuccess {
+  ok: true;
+  summary: HouseholdSettlementSummary;
+}
+
 export type BudgetFetchResult = BudgetFetchSuccess | AuthFailure;
 export type BudgetSaveResult = BudgetSaveSuccess | AuthFailure;
 export type BudgetHistoryResult = BudgetHistorySuccess | AuthFailure;
@@ -180,12 +193,11 @@ export type HouseholdFetchResult = HouseholdFetchSuccess | AuthFailure;
 export type HouseholdCreateResult = HouseholdCreateSuccess | AuthFailure;
 export type HouseholdInviteResult = HouseholdInviteSuccess | AuthFailure;
 export type HouseholdLeaveResult = HouseholdLeaveSuccess | AuthFailure;
-export type HouseholdBudgetFetchResult = HouseholdBudgetFetchSuccess | AuthFailure;
-export type HouseholdBudgetSaveResult = HouseholdBudgetSaveSuccess | AuthFailure;
 export type HouseholdTransactionListResult = HouseholdTransactionListSuccess | AuthFailure;
 export type HouseholdTransactionCreateResult = HouseholdTransactionCreateSuccess | AuthFailure;
 export type HouseholdTransactionUpdateResult = HouseholdTransactionUpdateSuccess | AuthFailure;
 export type HouseholdTransactionDeleteResult = HouseholdTransactionDeleteSuccess | AuthFailure;
+export type HouseholdSettlementFetchResult = HouseholdSettlementFetchSuccess | AuthFailure;
 
 export interface AuthContextValue {
   user: User | null;
@@ -267,11 +279,6 @@ export interface HouseholdLeaveResponseBody {
   message?: string;
 }
 
-export interface HouseholdBudgetResponseBody {
-  budgetAmountCad?: number | null;
-  message?: string;
-}
-
 export interface HouseholdTransactionListResponseBody {
   transactions?: HouseholdTransaction[];
   message?: string;
@@ -284,5 +291,12 @@ export interface HouseholdTransactionResponseBody {
 
 export interface HouseholdTransactionDeleteResponseBody {
   ok?: boolean;
+  message?: string;
+}
+
+export interface HouseholdSettlementResponseBody {
+  month?: string;
+  totalPaidByCurrentUserCad?: number;
+  youOwe?: HouseholdSettlementLine[];
   message?: string;
 }

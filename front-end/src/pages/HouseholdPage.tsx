@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import MobileNav from "../components/MobileNav";
 import {
   createMyHousehold,
   createMyHouseholdTransaction,
   deleteMyHouseholdTransaction,
   getMyHousehold,
-  getMyHouseholdBudget,
+  getMyHouseholdSettlement,
+  getMyTransactionTypes,
   getMyHouseholdTransactions,
   inviteToHousehold,
   leaveMyHousehold,
-  saveMyHouseholdBudget,
   updateMyHouseholdTransaction,
 } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
-import type { Household, HouseholdTransaction } from "../types/auth";
+import type { Household, HouseholdSettlementSummary, HouseholdTransaction, TransactionType } from "../types/auth";
 
 function todayAsDateInputValue(): string {
   return new Date().toISOString().slice(0, 10);
@@ -50,15 +49,11 @@ export default function HouseholdPage() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [isHouseholdInfoModalOpen, setIsHouseholdInfoModalOpen] = useState(false);
 
-  const [householdBudgetAmountCad, setHouseholdBudgetAmountCad] = useState<number | null>(null);
   const [householdTransactions, setHouseholdTransactions] = useState<HouseholdTransaction[]>([]);
+  const [householdSettlement, setHouseholdSettlement] = useState<HouseholdSettlementSummary | null>(null);
+  const [transactionTypes, setTransactionTypes] = useState<TransactionType[]>([]);
   const [financeError, setFinanceError] = useState("");
   const [isFinanceLoading, setIsFinanceLoading] = useState(false);
-
-  const [isEditingBudget, setIsEditingBudget] = useState(false);
-  const [budgetDraft, setBudgetDraft] = useState("");
-  const [budgetError, setBudgetError] = useState("");
-  const [isSavingBudget, setIsSavingBudget] = useState(false);
 
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
@@ -69,6 +64,7 @@ export default function HouseholdPage() {
   const [transactionTypeDraft, setTransactionTypeDraft] = useState("");
   const [transactionDescriptionDraft, setTransactionDescriptionDraft] = useState("");
   const [transactionDateDraft, setTransactionDateDraft] = useState(todayAsDateInputValue);
+  const [participantUserIdsDraft, setParticipantUserIdsDraft] = useState<string[]>([]);
 
   const formattedCurrency = useMemo(
     () =>
@@ -80,65 +76,15 @@ export default function HouseholdPage() {
     [],
   );
 
-  const currentMonthPrefix = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const modalTypeOptions = useMemo(() => {
+    const fromServer = transactionTypes.map((transactionType) => transactionType.name);
 
-  const currentMonthTransactions = useMemo(
-    () => householdTransactions.filter((transaction) => transaction.transactionDate.startsWith(currentMonthPrefix)),
-    [currentMonthPrefix, householdTransactions],
-  );
-
-  const contributionByUser = useMemo(() => {
-    const byUser = new Map<string, { userId: string; name: string; amountCad: number }>();
-
-    for (const member of household?.members ?? []) {
-      byUser.set(member.userId, {
-        userId: member.userId,
-        name: member.name,
-        amountCad: 0,
-      });
+    if (editingTransactionId && transactionTypeDraft && !fromServer.includes(transactionTypeDraft)) {
+      return [transactionTypeDraft, ...fromServer];
     }
 
-    for (const transaction of currentMonthTransactions) {
-      const existing = byUser.get(transaction.createdByUserId);
-
-      if (existing) {
-        existing.amountCad += transaction.amountCad;
-        continue;
-      }
-
-      byUser.set(transaction.createdByUserId, {
-        userId: transaction.createdByUserId,
-        name: transaction.createdByName,
-        amountCad: transaction.amountCad,
-      });
-    }
-
-    return Array.from(byUser.values()).sort((left, right) => right.amountCad - left.amountCad);
-  }, [currentMonthTransactions, household?.members]);
-
-  const monthTotals = useMemo(() => {
-    const totalSpentCad = currentMonthTransactions.reduce((sum, transaction) => sum + transaction.amountCad, 0);
-    const memberCount = household?.members.length ?? 0;
-    const equalShareCad = memberCount > 0 ? totalSpentCad / memberCount : 0;
-    const currentUserPaidCad =
-      user?.id
-        ? currentMonthTransactions
-            .filter((transaction) => transaction.createdByUserId === user.id)
-            .reduce((sum, transaction) => sum + transaction.amountCad, 0)
-        : 0;
-
-    return {
-      totalSpentCad,
-      equalShareCad,
-      currentUserPaidCad,
-      netCad: currentUserPaidCad - equalShareCad,
-    };
-  }, [currentMonthTransactions, household?.members.length, user?.id]);
-
-  const settlementRows = useMemo(
-    () => contributionByUser.map((entry) => ({ ...entry, netCad: entry.amountCad - monthTotals.equalShareCad })),
-    [contributionByUser, monthTotals.equalShareCad],
-  );
+    return fromServer;
+  }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
 
   async function loadHouseholdFinanceData() {
     if (!household) {
@@ -148,18 +94,26 @@ export default function HouseholdPage() {
     setFinanceError("");
     setIsFinanceLoading(true);
 
-    const [budgetResult, transactionsResult] = await Promise.all([getMyHouseholdBudget(), getMyHouseholdTransactions()]);
-
-    if (budgetResult.ok) {
-      setHouseholdBudgetAmountCad(budgetResult.budgetAmountCad);
-    }
+    const [transactionsResult, settlementResult, transactionTypesResult] = await Promise.all([
+      getMyHouseholdTransactions(),
+      getMyHouseholdSettlement(),
+      getMyTransactionTypes(),
+    ]);
 
     if (transactionsResult.ok) {
       setHouseholdTransactions(transactionsResult.transactions);
     }
 
-    if (!budgetResult.ok || !transactionsResult.ok) {
-      setFinanceError("Some shared household data could not be loaded right now.");
+    if (settlementResult.ok) {
+      setHouseholdSettlement(settlementResult.summary);
+    }
+
+    if (transactionTypesResult.ok) {
+      setTransactionTypes(transactionTypesResult.transactionTypes);
+    }
+
+    if (!transactionsResult.ok || !settlementResult.ok || !transactionTypesResult.ok) {
+      setFinanceError("Shared household data could not be loaded right now.");
     }
 
     setIsFinanceLoading(false);
@@ -196,11 +150,9 @@ export default function HouseholdPage() {
 
   useEffect(() => {
     if (!household) {
-      setHouseholdBudgetAmountCad(null);
       setHouseholdTransactions([]);
-      setIsEditingBudget(false);
-      setBudgetDraft("");
-      setBudgetError("");
+      setHouseholdSettlement(null);
+      setTransactionTypes([]);
       setFinanceError("");
       return;
     }
@@ -295,50 +247,13 @@ export default function HouseholdPage() {
     setIsHouseholdInfoModalOpen(false);
   }
 
-  function startEditingBudget() {
-    setBudgetError("");
-    setBudgetDraft(typeof householdBudgetAmountCad === "number" ? String(householdBudgetAmountCad) : "");
-    setIsEditingBudget(true);
-  }
-
-  function cancelEditingBudget() {
-    if (isSavingBudget) {
-      return;
-    }
-
-    setBudgetError("");
-    setIsEditingBudget(false);
-  }
-
-  async function onSaveHouseholdBudget() {
-    setBudgetError("");
-
-    const parsedBudget = Number(budgetDraft);
-
-    if (!Number.isInteger(parsedBudget) || parsedBudget <= 0) {
-      setBudgetError("Please enter a whole number greater than 0.");
-      return;
-    }
-
-    setIsSavingBudget(true);
-    const result = await saveMyHouseholdBudget(parsedBudget);
-    setIsSavingBudget(false);
-
-    if (!result.ok) {
-      setBudgetError(result.message);
-      return;
-    }
-
-    setHouseholdBudgetAmountCad(result.budgetAmountCad);
-    setIsEditingBudget(false);
-  }
-
   function openTransactionModal() {
     setTransactionError("");
     setTransactionAmountDraft("");
-    setTransactionTypeDraft("");
+    setTransactionTypeDraft(transactionTypes[0]?.name ?? "");
     setTransactionDescriptionDraft("");
     setTransactionDateDraft(todayAsDateInputValue());
+    setParticipantUserIdsDraft((household?.members ?? []).map((member) => member.userId));
     setEditingTransactionId(null);
     setIsTransactionModalOpen(true);
   }
@@ -349,8 +264,19 @@ export default function HouseholdPage() {
     setTransactionTypeDraft(transaction.type);
     setTransactionDescriptionDraft(transaction.description);
     setTransactionDateDraft(transaction.transactionDate);
+    setParticipantUserIdsDraft(transaction.participants.map((participant) => participant.userId));
     setEditingTransactionId(transaction.id);
     setIsTransactionModalOpen(true);
+  }
+
+  function toggleParticipant(userId: string) {
+    setParticipantUserIdsDraft((current) => {
+      if (current.includes(userId)) {
+        return current.filter((id) => id !== userId);
+      }
+
+      return [...current, userId];
+    });
   }
 
   function closeTransactionModal() {
@@ -387,11 +313,17 @@ export default function HouseholdPage() {
       return;
     }
 
+    if (participantUserIdsDraft.length === 0) {
+      setTransactionError("Select at least one member who should pay for this transaction.");
+      return;
+    }
+
     const payload = {
       amountCad,
       type: transactionTypeDraft.trim(),
       description: transactionDescriptionDraft.trim(),
       transactionDate: transactionDateDraft,
+      participantUserIds: participantUserIdsDraft,
     };
 
     setIsSavingTransaction(true);
@@ -456,106 +388,15 @@ export default function HouseholdPage() {
           <p>Loading household...</p>
         ) : household ? (() => {
           const isCreator = household.createdByUserId === user?.id;
-          const formattedBudget =
-            typeof householdBudgetAmountCad === "number" ? formattedCurrency.format(householdBudgetAmountCad) : "Not set";
 
           return (
             <>
               <h2>{household.name}</h2>
               {isCreator ? (
-                <p>Invite members and set the shared monthly budget. Everyone can add, edit, and delete shared transactions.</p>
+                <p>Invite members to your household. Everyone can add, edit, and delete shared transactions.</p>
               ) : (
-                <p>Only the creator can invite users and set budget. Everyone can add, edit, and delete shared transactions.</p>
+                <p>Only the creator can invite users. Everyone can add, edit, and delete shared transactions.</p>
               )}
-
-              <div className="household-finance-panel">
-                <div className="page-title-row page-title-actions">
-                  <h3>Current Month Contributions</h3>
-                </div>
-
-                {contributionByUser.length > 0 ? (
-                  <div className="household-contribution-chart-wrap">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={contributionByUser} layout="vertical" margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                        <XAxis type="number" tick={{ fill: "var(--muted)", fontSize: 12 }} tickFormatter={(value) => `$${Number(value).toFixed(0)}`} />
-                        <YAxis dataKey="name" type="category" width={90} tick={{ fill: "var(--text)", fontSize: 12 }} />
-                        <Tooltip formatter={(value) => formattedCurrency.format(Number(value))} cursor={{ fill: "rgba(14, 122, 116, 0.08)" }} />
-                        <Bar dataKey="amountCad" fill="var(--primary)" radius={[6, 6, 6, 6]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p>No shared transactions this month yet.</p>
-                )}
-
-                <div className="household-settlement-summary">
-                  <p>
-                    Total spent this month: <strong>{formattedCurrency.format(monthTotals.totalSpentCad)}</strong>
-                  </p>
-                  <p>
-                    Equal share per member: <strong>{formattedCurrency.format(monthTotals.equalShareCad)}</strong>
-                  </p>
-                  <p>
-                    {monthTotals.netCad > 0.009
-                      ? `You should receive ${formattedCurrency.format(monthTotals.netCad)} from other members.`
-                      : monthTotals.netCad < -0.009
-                        ? `You owe ${formattedCurrency.format(Math.abs(monthTotals.netCad))} to other members.`
-                        : "You are settled up for this month."}
-                  </p>
-                </div>
-
-                {settlementRows.length > 0 ? (
-                  <ul className="household-settlement-list">
-                    {settlementRows.map((row) => (
-                      <li key={row.userId} className="household-settlement-row">
-                        <span>{row.name}</span>
-                        <span>
-                          {row.netCad >= 0
-                            ? `+${formattedCurrency.format(row.netCad)}`
-                            : `-${formattedCurrency.format(Math.abs(row.netCad))}`}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-
-              <div className="household-finance-panel">
-                <div className="page-title-row page-title-actions">
-                  <h3>Shared Budget</h3>
-                  {isCreator && !isEditingBudget ? (
-                    <button className="secondary-button" type="button" onClick={startEditingBudget}>
-                      {typeof householdBudgetAmountCad === "number" ? "Edit" : "Set Budget"}
-                    </button>
-                  ) : null}
-                </div>
-
-                {isEditingBudget ? (
-                  <div className="household-inline-form">
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      inputMode="numeric"
-                      value={budgetDraft}
-                      onChange={(event) => setBudgetDraft(event.target.value)}
-                      disabled={isSavingBudget}
-                    />
-                    <div className="household-budget-actions">
-                      <button type="button" onClick={onSaveHouseholdBudget} disabled={isSavingBudget}>
-                        {isSavingBudget ? "Saving..." : "Save"}
-                      </button>
-                      <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="budget-value">{formattedBudget}</p>
-                )}
-
-                {budgetError ? <p className="feedback error">{budgetError}</p> : null}
-              </div>
 
               <div className="household-finance-panel">
                 <div className="page-title-row page-title-actions">
@@ -563,6 +404,21 @@ export default function HouseholdPage() {
                   <button type="button" onClick={openTransactionModal}>
                     Add Shared Transaction
                   </button>
+                </div>
+
+                <div className="household-summary-row">
+                  <p>
+                    You paid this month: <strong>{formattedCurrency.format(householdSettlement?.totalPaidByCurrentUserCad ?? 0)}</strong>
+                  </p>
+                  {householdSettlement?.youOwe.length ? (
+                    <ul className="household-owe-list">
+                      {householdSettlement.youOwe.map((line) => (
+                        <li key={`${line.toUserId}-${line.amountCad}`}>You owe {formattedCurrency.format(line.amountCad)} to {line.toName}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>You do not owe anyone for this month.</p>
+                  )}
                 </div>
 
                 {isFinanceLoading ? (
@@ -575,6 +431,9 @@ export default function HouseholdPage() {
                           <p className="transaction-merchant">{transaction.type}</p>
                           <p className="transaction-meta">{transaction.description}</p>
                           <p className="transaction-meta">Added by {transaction.createdByName}</p>
+                          <p className="transaction-meta">
+                            Split with {transaction.participants.map((participant) => participant.name).join(", ") || "nobody"}
+                          </p>
                         </div>
                         <p className="transaction-date">{formatDateForDisplay(transaction.transactionDate)}</p>
                         <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
@@ -640,15 +499,24 @@ export default function HouseholdPage() {
 
                       <label>
                         Type
-                        <input
-                          type="text"
+                        <select
                           value={transactionTypeDraft}
                           onChange={(event) => setTransactionTypeDraft(event.target.value)}
-                          disabled={isSavingTransaction}
-                          placeholder="Ex: Groceries"
+                          disabled={isSavingTransaction || modalTypeOptions.length === 0}
                           required
-                        />
+                        >
+                          {modalTypeOptions.length === 0 ? <option value="">No types available</option> : null}
+                          {modalTypeOptions.map((typeName) => (
+                            <option key={typeName} value={typeName}>
+                              {typeName}
+                            </option>
+                          ))}
+                        </select>
                       </label>
+
+                      {modalTypeOptions.length === 0 ? (
+                        <p className="feedback error">No transaction types found. Add one in your user page first.</p>
+                      ) : null}
 
                       <label>
                         Description
@@ -673,10 +541,32 @@ export default function HouseholdPage() {
                         />
                       </label>
 
+                      <fieldset className="household-participants-fieldset">
+                        <legend>Who should pay for this transaction?</legend>
+                        <p className="transaction-meta">Select members included in the split. You can include or exclude yourself.</p>
+                        <div className="household-participants-grid">
+                          {(household?.members ?? []).map((member) => {
+                            const checked = participantUserIdsDraft.includes(member.userId);
+
+                            return (
+                              <label key={member.userId} className={`household-participant-pill${checked ? " selected" : ""}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleParticipant(member.userId)}
+                                  disabled={isSavingTransaction}
+                                />
+                                <span>{member.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </fieldset>
+
                       {transactionError ? <p className="feedback error">{transactionError}</p> : null}
 
                       <div className="modal-actions">
-                        <button type="submit" disabled={isSavingTransaction}>
+                        <button type="submit" disabled={isSavingTransaction || modalTypeOptions.length === 0}>
                           {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
                         </button>
                         <button className="secondary-button" type="button" onClick={closeTransactionModal} disabled={isSavingTransaction}>

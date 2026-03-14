@@ -2,36 +2,20 @@ import { Router } from "express";
 import {
   createMyHouseholdTransaction,
   deleteMyHouseholdTransaction,
-  getMyHouseholdMonthlyBudget,
+  getMyHouseholdSettlementSummary,
   getMyHouseholdTransactions,
-  upsertMyHouseholdMonthlyBudget,
   updateMyHouseholdTransaction,
 } from "../db/householdFinances.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
-interface SaveBudgetBody {
-  budgetAmountCad?: unknown;
-}
-
 interface SaveTransactionBody {
   amountCad?: unknown;
   type?: unknown;
   description?: unknown;
   transactionDate?: unknown;
-}
-
-function parseBudgetAmount(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isInteger(value)) {
-    return null;
-  }
-
-  if (value <= 0) {
-    return null;
-  }
-
-  return value;
+  participantUserIds?: unknown;
 }
 
 function parseAmount(value: unknown): number | null {
@@ -86,60 +70,39 @@ function parseTransactionId(value: unknown): string | null {
   return trimmed || null;
 }
 
-router.get("/budget/me", requireAuth, async (req, res) => {
-  if (!req.auth) {
-    res.status(401).json({ message: "Authentication required" });
-    return;
+function parseParticipantUserIds(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
   }
 
-  try {
-    const budgetAmountCad = await getMyHouseholdMonthlyBudget(String(req.auth.userId));
-    res.json({ budgetAmountCad });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
+  const normalized = value
+    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+    .filter((entry) => entry.length > 0);
 
-    if (message === "USER_NOT_IN_HOUSEHOLD") {
-      res.status(404).json({ message: "You are not in a household" });
-      return;
-    }
-
-    res.status(500).json({ message: "Failed to load household budget" });
-  }
-});
-
-router.post("/budget/me", requireAuth, async (req, res) => {
-  if (!req.auth) {
-    res.status(401).json({ message: "Authentication required" });
-    return;
+  if (normalized.length === 0) {
+    return null;
   }
 
-  const { budgetAmountCad } = (req.body ?? {}) as SaveBudgetBody;
-  const parsedBudgetAmountCad = parseBudgetAmount(budgetAmountCad);
+  return Array.from(new Set(normalized));
+}
 
-  if (parsedBudgetAmountCad === null) {
-    res.status(400).json({ message: "Budget amount must be an integer greater than 0" });
-    return;
+function parseMonth(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
   }
 
-  try {
-    const savedBudgetAmountCad = await upsertMyHouseholdMonthlyBudget(String(req.auth.userId), parsedBudgetAmountCad);
-    res.json({ budgetAmountCad: savedBudgetAmountCad });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-
-    if (message === "USER_NOT_IN_HOUSEHOLD") {
-      res.status(404).json({ message: "You are not in a household" });
-      return;
-    }
-
-    if (message === "ONLY_CREATOR_CAN_SET_HOUSEHOLD_BUDGET") {
-      res.status(403).json({ message: "Only the household creator can set household budget" });
-      return;
-    }
-
-    res.status(500).json({ message: "Failed to save household budget" });
+  if (typeof value !== "string") {
+    return null;
   }
-});
+
+  const trimmed = value.trim();
+
+  if (!/^\d{4}-\d{2}$/.test(trimmed)) {
+    return null;
+  }
+
+  return trimmed;
+}
 
 router.get("/transactions/me", requireAuth, async (req, res) => {
   if (!req.auth) {
@@ -162,6 +125,40 @@ router.get("/transactions/me", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/settlements/me", requireAuth, async (req, res) => {
+  if (!req.auth) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const queryMonth = parseMonth(req.query.month);
+  const month = queryMonth === undefined ? new Date().toISOString().slice(0, 7) : queryMonth;
+
+  if (!month) {
+    res.status(400).json({ message: "Month must be in YYYY-MM format" });
+    return;
+  }
+
+  try {
+    const summary = await getMyHouseholdSettlementSummary(String(req.auth.userId), month);
+    res.json(summary);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+
+    if (message === "USER_NOT_IN_HOUSEHOLD") {
+      res.status(404).json({ message: "You are not in a household" });
+      return;
+    }
+
+    if (message === "INVALID_MONTH") {
+      res.status(400).json({ message: "Month must be in YYYY-MM format" });
+      return;
+    }
+
+    res.status(500).json({ message: "Failed to load household settlements" });
+  }
+});
+
 router.post("/transactions/me", requireAuth, async (req, res) => {
   if (!req.auth) {
     res.status(401).json({ message: "Authentication required" });
@@ -173,6 +170,7 @@ router.post("/transactions/me", requireAuth, async (req, res) => {
   const type = parseTextField(body.type);
   const description = parseTextField(body.description);
   const transactionDate = parseTransactionDate(body.transactionDate);
+  const participantUserIds = parseParticipantUserIds(body.participantUserIds);
 
   if (amountCad === null) {
     res.status(400).json({ message: "Amount must be a positive number" });
@@ -194,14 +192,37 @@ router.post("/transactions/me", requireAuth, async (req, res) => {
     return;
   }
 
+  if (!participantUserIds) {
+    res.status(400).json({ message: "Please select at least one household member" });
+    return;
+  }
+
   try {
-    const transaction = await createMyHouseholdTransaction(String(req.auth.userId), amountCad, type, description, transactionDate);
+    const transaction = await createMyHouseholdTransaction(
+      String(req.auth.userId),
+      amountCad,
+      type,
+      description,
+      transactionDate,
+      participantUserIds,
+      true,
+    );
     res.status(201).json({ transaction });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
 
     if (message === "USER_NOT_IN_HOUSEHOLD") {
       res.status(404).json({ message: "You are not in a household" });
+      return;
+    }
+
+    if (message === "PARTICIPANTS_REQUIRED") {
+      res.status(400).json({ message: "Please select at least one household member" });
+      return;
+    }
+
+    if (message === "PARTICIPANTS_MUST_BE_HOUSEHOLD_MEMBERS") {
+      res.status(400).json({ message: "All selected participants must belong to your household" });
       return;
     }
 
@@ -221,6 +242,7 @@ router.put("/transactions/me/:transactionId", requireAuth, async (req, res) => {
   const type = parseTextField(body.type);
   const description = parseTextField(body.description);
   const transactionDate = parseTransactionDate(body.transactionDate);
+  const participantUserIds = parseParticipantUserIds(body.participantUserIds);
 
   if (!transactionId) {
     res.status(400).json({ message: "Transaction id is required" });
@@ -247,6 +269,11 @@ router.put("/transactions/me/:transactionId", requireAuth, async (req, res) => {
     return;
   }
 
+  if (!participantUserIds) {
+    res.status(400).json({ message: "Please select at least one household member" });
+    return;
+  }
+
   try {
     const transaction = await updateMyHouseholdTransaction(
       String(req.auth.userId),
@@ -255,6 +282,7 @@ router.put("/transactions/me/:transactionId", requireAuth, async (req, res) => {
       type,
       description,
       transactionDate,
+      participantUserIds,
     );
 
     if (!transaction) {
@@ -268,6 +296,16 @@ router.put("/transactions/me/:transactionId", requireAuth, async (req, res) => {
 
     if (message === "USER_NOT_IN_HOUSEHOLD") {
       res.status(404).json({ message: "You are not in a household" });
+      return;
+    }
+
+    if (message === "PARTICIPANTS_REQUIRED") {
+      res.status(400).json({ message: "Please select at least one household member" });
+      return;
+    }
+
+    if (message === "PARTICIPANTS_MUST_BE_HOUSEHOLD_MEMBERS") {
+      res.status(400).json({ message: "All selected participants must belong to your household" });
       return;
     }
 

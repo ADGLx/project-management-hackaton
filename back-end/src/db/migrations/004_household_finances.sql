@@ -1,19 +1,3 @@
-CREATE TABLE IF NOT EXISTS household_monthly_budgets (
-  household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
-  month_start DATE NOT NULL,
-  budget_amount_cad INTEGER NOT NULL CHECK (budget_amount_cad > 0),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (household_id, month_start)
-);
-
-DROP TRIGGER IF EXISTS household_monthly_budgets_set_updated_at ON household_monthly_budgets;
-
-CREATE TRIGGER household_monthly_budgets_set_updated_at
-BEFORE UPDATE ON household_monthly_budgets
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at_timestamp();
-
 CREATE TABLE IF NOT EXISTS household_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
