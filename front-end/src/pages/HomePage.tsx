@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChartPie, faGaugeHigh, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 import AddTransactionFab from "../components/AddTransactionFab";
-import { PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
-import { getMyTransactionHistory } from "../lib/api";
+import { Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer, Tooltip } from "recharts";
+import { getMyTransactionHistory, getMyTransactions } from "../lib/api";
 import MobileNav from "../components/MobileNav";
 import { useAuth } from "../state/AuthContext";
-import type { MonthlySpendingPoint } from "../types/auth";
+import type { MonthlySpendingPoint, UserTransaction } from "../types/auth";
 
 function nameFromEmail(email?: string): string {
   if (!email) {
@@ -30,11 +32,13 @@ function currentMonthStartDateString(): string {
 export default function HomePage() {
   const { user, profileName, budgetAmountCad, saveMonthlyBudget } = useAuth();
   const [spendingHistory, setSpendingHistory] = useState<MonthlySpendingPoint[]>([]);
+  const [transactions, setTransactions] = useState<UserTransaction[]>([]);
   const [dataError, setDataError] = useState("");
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState("");
   const [budgetError, setBudgetError] = useState("");
   const [isSavingBudget, setIsSavingBudget] = useState(false);
+  const [chartView, setChartView] = useState<"progress" | "breakdown">("progress");
   const displayName = user?.name || profileName || nameFromEmail(user?.email);
   const formattedBudget =
     typeof budgetAmountCad === "number"
@@ -56,6 +60,7 @@ export default function HomePage() {
   );
 
   const currentMonthStart = useMemo(() => currentMonthStartDateString(), []);
+  const currentMonthPrefix = currentMonthStart.slice(0, 7);
 
   const spendingByMonth = useMemo(() => {
     const byMonth = new Map<string, number>();
@@ -75,8 +80,6 @@ export default function HomePage() {
     currentMonthBudgetCad !== null && currentMonthBudgetCad > 0 ? (currentMonthSpending / currentMonthBudgetCad) * 100 : null;
   const cappedBudgetUsagePercent = budgetUsagePercent === null ? 0 : Math.min(budgetUsagePercent, 100);
   const isOverBudget = remainingBudgetCad !== null && remainingBudgetCad < 0;
-  const currentStandingLabel =
-    remainingBudgetCad === null ? "Budget not set" : remainingBudgetCad >= 0 ? "On track" : "Over budget";
   const progressChartData = useMemo(
     () => [
       {
@@ -86,15 +89,37 @@ export default function HomePage() {
     [cappedBudgetUsagePercent],
   );
 
+  const currentMonthBreakdownData = useMemo(() => {
+    const groupedByType = new Map<string, number>();
+
+    for (const transaction of transactions) {
+      if (!transaction.transactionDate.startsWith(currentMonthPrefix)) {
+        continue;
+      }
+
+      groupedByType.set(transaction.type, (groupedByType.get(transaction.type) ?? 0) + transaction.amountCad);
+    }
+
+    return Array.from(groupedByType.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((left, right) => right.value - left.value);
+  }, [currentMonthPrefix, transactions]);
+
+  const breakdownColors = ["#0e7a74", "#188e87", "#2ca59c", "#57bdb6", "#89d4cf", "#b2e5e1"];
+
   async function loadDashboardData() {
     setDataError("");
-    const spendingHistoryResult = await getMyTransactionHistory();
+    const [spendingHistoryResult, transactionsResult] = await Promise.all([getMyTransactionHistory(), getMyTransactions()]);
 
     if (spendingHistoryResult.ok) {
       setSpendingHistory(spendingHistoryResult.history);
     }
 
-    if (!spendingHistoryResult.ok) {
+    if (transactionsResult.ok) {
+      setTransactions(transactionsResult.transactions);
+    }
+
+    if (!spendingHistoryResult.ok || !transactionsResult.ok) {
       setDataError("Some dashboard data could not be loaded right now.");
     }
   }
@@ -107,7 +132,7 @@ export default function HomePage() {
         return;
       }
 
-      const spendingHistoryResult = await getMyTransactionHistory();
+      const [spendingHistoryResult, transactionsResult] = await Promise.all([getMyTransactionHistory(), getMyTransactions()]);
 
       if (!isMounted) {
         return;
@@ -117,7 +142,11 @@ export default function HomePage() {
         setSpendingHistory(spendingHistoryResult.history);
       }
 
-      if (!spendingHistoryResult.ok) {
+      if (transactionsResult.ok) {
+        setTransactions(transactionsResult.transactions);
+      }
+
+      if (!spendingHistoryResult.ok || !transactionsResult.ok) {
         setDataError("Some dashboard data could not be loaded right now.");
       }
     }
@@ -168,39 +197,77 @@ export default function HomePage() {
   return (
     <main className="home-shell">
       <section className="page-title-row">
-        <h1>Welcome, {displayName}</h1>
+        <h1>Dashboard</h1>
       </section>
 
       <section className="dashboard-card overview-card">
         <div className="overview-section chart-card">
-          {currentMonthBudgetCad !== null && currentMonthBudgetCad > 0 ? (
-            <div className="chart-wrap">
+          <div className="chart-card-toolbar">
+            <p className="chart-card-title">{chartView === "progress" ? "Budget Progress" : "Spending by Type"}</p>
+            <button
+              className="chart-toggle-button secondary-button"
+              type="button"
+              onClick={() => setChartView((current) => (current === "progress" ? "breakdown" : "progress"))}
+              aria-label={chartView === "progress" ? "Show spending by type" : "Show budget progress"}
+              title={chartView === "progress" ? "Show spending by type" : "Show budget progress"}
+            >
+              <FontAwesomeIcon icon={chartView === "progress" ? faChartPie : faGaugeHigh} />
+            </button>
+          </div>
+
+          {chartView === "progress" ? (
+            currentMonthBudgetCad !== null && currentMonthBudgetCad > 0 ? (
+              <div className="chart-wrap">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart
+                    data={progressChartData}
+                    startAngle={180}
+                    endAngle={0}
+                    cx="50%"
+                    cy="72%"
+                    innerRadius="75%"
+                    outerRadius="98%"
+                  >
+                    <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
+                    <RadialBar dataKey="value" cornerRadius={10} fill="#0e7a74" background={{ fill: "rgba(77, 104, 116, 0.2)" }} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div className="budget-progress-overlay budget-progress-overlay-progress" aria-hidden="true">
+                  <p className="budget-progress-value">{cappedBudgetUsagePercent.toFixed(1)}%</p>
+                  <p className="budget-progress-meta">
+                    {formattedCurrency.format(currentMonthSpending)} of {formattedCurrency.format(currentMonthBudgetCad)}
+                  </p>
+                  {isOverBudget && remainingBudgetCad !== null ? (
+                    <p className="budget-progress-note">Over by {formattedCurrency.format(Math.abs(remainingBudgetCad))}</p>
+                  ) : null}
+                </div>
+                <div className="budget-progress-labels" aria-hidden="true">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            ) : (
+              <p>Set your monthly budget to start tracking progress.</p>
+            )
+          ) : currentMonthBreakdownData.length > 0 ? (
+            <div className="chart-wrap chart-wrap-donut">
               <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                  data={progressChartData}
-                  startAngle={180}
-                  endAngle={0}
-                  cx="50%"
-                  cy="72%"
-                  innerRadius="75%"
-                  outerRadius="98%"
-                >
-                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
-                  <RadialBar dataKey="value" cornerRadius={10} fill="#0e7a74" background={{ fill: "rgba(77, 104, 116, 0.2)" }} />
-                </RadialBarChart>
+                <PieChart>
+                  <Pie data={currentMonthBreakdownData} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="84%" paddingAngle={2}>
+                    {currentMonthBreakdownData.map((entry, index) => (
+                      <Cell key={entry.name} fill={breakdownColors[index % breakdownColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => formattedCurrency.format(Number(value))} />
+                </PieChart>
               </ResponsiveContainer>
-              <div className="budget-progress-overlay" aria-hidden="true">
-                <p className="budget-progress-value">{cappedBudgetUsagePercent.toFixed(1)}%</p>
-                <p className="budget-progress-meta">
-                  {formattedCurrency.format(currentMonthSpending)} of {formattedCurrency.format(currentMonthBudgetCad)}
-                </p>
-                {isOverBudget && remainingBudgetCad !== null ? (
-                  <p className="budget-progress-note">Over by {formattedCurrency.format(Math.abs(remainingBudgetCad))}</p>
-                ) : null}
+              <div className="budget-progress-overlay budget-progress-overlay-donut" aria-hidden="true">
+                <p className="budget-progress-value">{formattedCurrency.format(currentMonthSpending)}</p>
+                <p className="budget-progress-meta">Spent this month</p>
               </div>
             </div>
           ) : (
-            <p>Set your monthly budget to start tracking progress.</p>
+            <p>No transactions in the current month to show type breakdown.</p>
           )}
         </div>
         <div className="overview-section budget-card">
@@ -238,36 +305,17 @@ export default function HomePage() {
               ) : (
                 <div className="budget-value-row">
                   <p className="budget-value">{formattedBudget}</p>
-                  <button className="budget-edit-button secondary-button" type="button" onClick={startEditingBudget}>
-                    Edit Budget
+                  <button
+                    className="budget-edit-button secondary-button"
+                    type="button"
+                    onClick={startEditingBudget}
+                    aria-label="Edit monthly budget"
+                    title="Edit monthly budget"
+                  >
+                    <FontAwesomeIcon icon={faPenToSquare} />
                   </button>
                 </div>
               )}
-            </div>
-
-            <div className="current-month-stats">
-              <p className="current-month-title">Current Month</p>
-              <div className="current-month-grid">
-                <div className="current-month-item">
-                  <p className="current-month-label">Standing</p>
-                  <p className="current-month-value">{currentStandingLabel}</p>
-                </div>
-                <div className="current-month-item">
-                  <p className="current-month-label">Used (%)</p>
-                  <p className="current-month-value">{budgetUsagePercent === null ? "--" : `${budgetUsagePercent.toFixed(1)}%`}</p>
-                </div>
-                <div className="current-month-item">
-                  <p className="current-month-label">Spent</p>
-                  <p className="current-month-value">{formattedCurrency.format(currentMonthSpending)}</p>
-                </div>
-                <div className="current-month-item">
-                  <p className="current-month-label">Remaining</p>
-                  <p className="current-month-value">
-                    {remainingBudgetCad === null ? "--" : formattedCurrency.format(Math.abs(remainingBudgetCad))}
-                    {remainingBudgetCad !== null && remainingBudgetCad < 0 ? " over" : ""}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

@@ -338,56 +338,14 @@ button:disabled {
 }
 
 .budget-edit-button {
-  padding: 0.4rem 0.65rem;
-  font-size: 0.82rem;
-}
-
-.current-month-stats {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel-strong);
-  padding: 0.65rem;
+  width: 2.15rem;
+  height: 2.15rem;
+  min-width: 2.15rem;
+  border-radius: 999px;
+  padding: 0;
   display: grid;
-  gap: 0.45rem;
-  margin-top: 0;
-  text-align: center;
-}
-
-.current-month-title {
-  font-size: 0.82rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted) !important;
-  font-weight: 700;
-}
-
-.current-month-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.45rem;
-}
-
-.current-month-item {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.45rem 0.5rem;
-  display: grid;
-  gap: 0.14rem;
-  justify-items: center;
-}
-
-.current-month-label {
-  font-size: 0.72rem;
-  color: var(--muted) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.current-month-value {
-  color: var(--text) !important;
-  font-weight: 700;
-  font-size: 0.96rem;
+  place-items: center;
+  font-size: 0.98rem;
 }
 
 .budget-edit-form {
@@ -449,16 +407,70 @@ button:disabled {
   height: 270px;
 }
 
+.chart-card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.chart-card-title {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--muted) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 0.35rem;
+}
+
+.chart-toggle-button {
+  width: 2.2rem;
+  height: 2.2rem;
+  min-width: 2.2rem;
+  padding: 0;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.chart-wrap-donut {
+  height: 300px;
+}
+
 .budget-progress-overlay {
   position: absolute;
   left: 0;
   right: 0;
-  top: 67%;
-  transform: translateY(-50%);
   display: grid;
   gap: 0.15rem;
   justify-items: center;
   text-align: center;
+  pointer-events: none;
+}
+
+.budget-progress-overlay-progress {
+  top: 72%;
+  transform: translateY(-50%);
+}
+
+.budget-progress-overlay-donut {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.budget-progress-labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.35rem;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
   pointer-events: none;
 }
 
