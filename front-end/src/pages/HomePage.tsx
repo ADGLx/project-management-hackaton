@@ -431,7 +431,6 @@ export default function HomePage() {
               <article className="transaction-row" role="listitem" key={transaction.id}>
                 <div>
                   <p className="transaction-merchant">{transaction.type}</p>
-                  <p className="transaction-meta">{transaction.id.slice(0, 8).toUpperCase()}</p>
                 </div>
 
                 <div className="transaction-right">
