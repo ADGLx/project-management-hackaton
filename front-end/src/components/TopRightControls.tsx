@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBell } from "@fortawesome/free-solid-svg-icons";
+import { faBell, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { getMyAlerts, respondToAlert } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
 import type { UserAlert } from "../types/auth";
@@ -165,10 +165,17 @@ export default function TopRightControls() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-title-row">
-              <h2 id="alerts-modal-title">Alerts</h2>
-              <button className="secondary-button" type="button" onClick={closeAlertsModal} disabled={Boolean(isRespondingAlertId)}>
-                Close
+              <button
+                className="secondary-button modal-close-button"
+                type="button"
+                onClick={closeAlertsModal}
+                disabled={Boolean(isRespondingAlertId)}
+                aria-label="Close alerts modal"
+                title="Close"
+              >
+                <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
               </button>
+              <h2 id="alerts-modal-title">Alerts</h2>
             </div>
 
             {isLoadingAlerts ? <p>Loading alerts...</p> : null}
