@@ -6,6 +6,12 @@ import type {
   BudgetHistoryResult,
   BudgetResponseBody,
   BudgetSaveResult,
+  HouseholdCreateResult,
+  HouseholdFetchResult,
+  HouseholdInviteResult,
+  HouseholdLeaveResponseBody,
+  HouseholdLeaveResult,
+  HouseholdResponseBody,
   TransactionCreateResponseBody,
   TransactionCreateResult,
   TransactionDeleteResponseBody,
@@ -491,6 +497,140 @@ export async function deleteMyTransactionType(typeId: string): Promise<Transacti
       return {
         ok: false,
         message: "Server returned an invalid delete response",
+      };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyHousehold(): Promise<HouseholdFetchResult> {
+  try {
+    const response = await fetch(`${API_URL}/households/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<HouseholdResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load household",
+      };
+    }
+
+    return {
+      ok: true,
+      household: data?.household ?? null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function createMyHousehold(name: string): Promise<HouseholdCreateResult> {
+  try {
+    const response = await fetch(`${API_URL}/households/me`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name }),
+    });
+
+    const data = await readJson<HouseholdResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to create household",
+      };
+    }
+
+    if (!data?.household) {
+      return {
+        ok: false,
+        message: "Server returned an invalid household response",
+      };
+    }
+
+    return {
+      ok: true,
+      household: data.household,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function inviteToHousehold(householdId: string, email: string): Promise<HouseholdInviteResult> {
+  try {
+    const response = await fetch(`${API_URL}/households/${householdId}/invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await readJson<HouseholdResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to invite user",
+      };
+    }
+
+    if (!data?.household) {
+      return {
+        ok: false,
+        message: "Server returned an invalid household response",
+      };
+    }
+
+    return {
+      ok: true,
+      household: data.household,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function leaveMyHousehold(): Promise<HouseholdLeaveResult> {
+  try {
+    const response = await fetch(`${API_URL}/households/me`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const data = await readJson<HouseholdLeaveResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to leave household",
+      };
+    }
+
+    if (!data?.ok) {
+      return {
+        ok: false,
+        message: "Server returned an invalid leave response",
       };
     }
 

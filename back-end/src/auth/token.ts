@@ -6,8 +6,10 @@ import type { AuthTokenClaims } from "../types/auth.js";
 const TOKEN_COOKIE = "pmh_token";
 
 export function signAuthToken(payload: AuthTokenClaims): string {
+  const expiresIn = env.jwtExpiresIn as jwt.SignOptions["expiresIn"];
+
   return jwt.sign(payload, env.jwtSecret, {
-    expiresIn: env.jwtExpiresIn,
+    expiresIn,
   });
 }
 

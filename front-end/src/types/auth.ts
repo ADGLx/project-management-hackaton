@@ -93,6 +93,39 @@ export interface TransactionTypeDeleteSuccess {
   ok: true;
 }
 
+export interface HouseholdMember {
+  userId: string;
+  name: string;
+  email: string;
+}
+
+export interface Household {
+  id: string;
+  name: string;
+  createdByUserId: string;
+  createdAt: string;
+  members: HouseholdMember[];
+}
+
+export interface HouseholdFetchSuccess {
+  ok: true;
+  household: Household | null;
+}
+
+export interface HouseholdCreateSuccess {
+  ok: true;
+  household: Household;
+}
+
+export interface HouseholdInviteSuccess {
+  ok: true;
+  household: Household;
+}
+
+export interface HouseholdLeaveSuccess {
+  ok: true;
+}
+
 export type BudgetFetchResult = BudgetFetchSuccess | AuthFailure;
 export type BudgetSaveResult = BudgetSaveSuccess | AuthFailure;
 export type BudgetHistoryResult = BudgetHistorySuccess | AuthFailure;
@@ -104,6 +137,10 @@ export type TransactionDeleteResult = TransactionDeleteSuccess | AuthFailure;
 export type TransactionTypesFetchResult = TransactionTypesFetchSuccess | AuthFailure;
 export type TransactionTypeCreateResult = TransactionTypeCreateSuccess | AuthFailure;
 export type TransactionTypeDeleteResult = TransactionTypeDeleteSuccess | AuthFailure;
+export type HouseholdFetchResult = HouseholdFetchSuccess | AuthFailure;
+export type HouseholdCreateResult = HouseholdCreateSuccess | AuthFailure;
+export type HouseholdInviteResult = HouseholdInviteSuccess | AuthFailure;
+export type HouseholdLeaveResult = HouseholdLeaveSuccess | AuthFailure;
 
 export interface AuthContextValue {
   user: User | null;
@@ -171,6 +208,16 @@ export interface TransactionTypeCreateResponseBody {
 }
 
 export interface TransactionTypeDeleteResponseBody {
+  ok?: boolean;
+  message?: string;
+}
+
+export interface HouseholdResponseBody {
+  household?: Household | null;
+  message?: string;
+}
+
+export interface HouseholdLeaveResponseBody {
   ok?: boolean;
   message?: string;
 }
