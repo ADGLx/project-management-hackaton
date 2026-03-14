@@ -354,113 +354,115 @@ export default function HomePage() {
         </button>
       </section>
 
-      <section className="dashboard-card budget-card">
-        <p className="eyebrow">Monthly Budget</p>
-        <p className="budget-value">{formattedBudget}</p>
+      <section className="dashboard-card overview-card">
+        <div className="overview-section budget-card">
+          <p className="eyebrow">Monthly Budget</p>
+          <p className="budget-value">{formattedBudget}</p>
 
-        {isEditingBudget ? (
-          <div className="budget-edit-form">
-            <div className="budget-edit-row">
-              <span>CAD $</span>
-              <input
-                className="budget-input"
-                type="number"
-                min={1}
-                step={1}
-                inputMode="numeric"
-                value={budgetDraft}
-                onChange={(event) => setBudgetDraft(event.target.value)}
-                disabled={isSavingBudget}
-              />
-            </div>
-
-            <div className="budget-actions">
-              <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
-                {isSavingBudget ? "Saving..." : "Save"}
-              </button>
-              <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
-                Cancel
-              </button>
-            </div>
-
-            {budgetError ? <p className="feedback error">{budgetError}</p> : null}
-          </div>
-        ) : (
-          <>
-            <p>This is your configured monthly limit in CAD.</p>
-            <button className="secondary-button" type="button" onClick={startEditingBudget}>
-              Edit budget
-            </button>
-          </>
-        )}
-      </section>
-
-      <section className="dashboard-card chart-card">
-        <h2>Budget vs Spending (Previous Months)</h2>
-        {monthlyComparisonData.length > 0 ? (
-          <div className="chart-wrap">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthlyComparisonData} margin={{ top: 12, right: 18, left: 10, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.32} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} width={56} tickFormatter={(value) => `$${value}`} />
-                <Tooltip formatter={(value) => `CAD $${value}`} />
-                <Legend />
-                <Bar dataKey="spending" name="Spending" fill="#0e7a74" radius={[6, 6, 0, 0]} />
-                <Line
-                  type="monotone"
-                  dataKey="budget"
-                  name="Budget"
-                  stroke="#f08c3a"
-                  strokeWidth={2.5}
-                  dot={{ r: 3 }}
+          {isEditingBudget ? (
+            <div className="budget-edit-form">
+              <div className="budget-edit-row">
+                <span>CAD $</span>
+                <input
+                  className="budget-input"
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={budgetDraft}
+                  onChange={(event) => setBudgetDraft(event.target.value)}
+                  disabled={isSavingBudget}
                 />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <p>No monthly chart data yet. Add your first transaction to start tracking spending.</p>
-        )}
-      </section>
+              </div>
 
-      <section className="dashboard-card transactions-card">
-        <h2>Transactions</h2>
-        {transactions.length > 0 ? (
-          <div className="transactions-list" role="list">
-            {transactions.map((transaction) => (
-              <article className="transaction-row" role="listitem" key={transaction.id}>
-                <div>
-                  <p className="transaction-merchant">{transaction.type}</p>
-                </div>
+              <div className="budget-actions">
+                <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
+                  {isSavingBudget ? "Saving..." : "Save"}
+                </button>
+                <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
+                  Cancel
+                </button>
+              </div>
 
-                <div className="transaction-right">
-                  <p>{formatDateForDisplay(transaction.transactionDate)}</p>
-                  <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
-                  <div className="transaction-actions">
-                    <button
-                      className="transaction-action secondary-button"
-                      type="button"
-                      onClick={() => openEditTransactionModal(transaction)}
-                      disabled={isSavingTransaction || isDeletingTransactionId === transaction.id}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="transaction-action secondary-button"
-                      type="button"
-                      onClick={() => void onDeleteTransaction(transaction.id)}
-                      disabled={isDeletingTransactionId === transaction.id || isSavingTransaction}
-                    >
-                      {isDeletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
-                    </button>
+              {budgetError ? <p className="feedback error">{budgetError}</p> : null}
+            </div>
+          ) : (
+            <>
+              <p>This is your configured monthly limit in CAD.</p>
+              <button className="secondary-button" type="button" onClick={startEditingBudget}>
+                Edit budget
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="overview-section chart-card">
+          <h2>Budget vs Spending (Previous Months)</h2>
+          {monthlyComparisonData.length > 0 ? (
+            <div className="chart-wrap">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={monthlyComparisonData} margin={{ top: 12, right: 18, left: 10, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.32} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                  <YAxis tickLine={false} axisLine={false} width={56} tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value) => `CAD $${value}`} />
+                  <Legend />
+                  <Bar dataKey="spending" name="Spending" fill="#0e7a74" radius={[6, 6, 0, 0]} />
+                  <Line
+                    type="monotone"
+                    dataKey="budget"
+                    name="Budget"
+                    stroke="#f08c3a"
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p>No monthly chart data yet. Add your first transaction to start tracking spending.</p>
+          )}
+        </div>
+
+        <div className="overview-section transactions-card">
+          <h2>Transactions</h2>
+          {transactions.length > 0 ? (
+            <div className="transactions-list" role="list">
+              {transactions.map((transaction) => (
+                <article className="transaction-row" role="listitem" key={transaction.id}>
+                  <div>
+                    <p className="transaction-merchant">{transaction.type}</p>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p>No transactions yet. Use the + button to add your first one.</p>
-        )}
+
+                  <div className="transaction-right">
+                    <p>{formatDateForDisplay(transaction.transactionDate)}</p>
+                    <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
+                    <div className="transaction-actions">
+                      <button
+                        className="transaction-action secondary-button"
+                        type="button"
+                        onClick={() => openEditTransactionModal(transaction)}
+                        disabled={isSavingTransaction || isDeletingTransactionId === transaction.id}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="transaction-action secondary-button"
+                        type="button"
+                        onClick={() => void onDeleteTransaction(transaction.id)}
+                        disabled={isDeletingTransactionId === transaction.id || isSavingTransaction}
+                      >
+                        {isDeletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p>No transactions yet. Use the + button to add your first one.</p>
+          )}
+        </div>
       </section>
 
       {dataError ? <p className="feedback error">{dataError}</p> : null}

@@ -292,6 +292,22 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.overview-card {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.overview-section {
+  padding: 1.2rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.overview-section + .overview-section {
+  border-top: 1px solid var(--border);
+}
+
 .budget-card {
   background: linear-gradient(160deg, var(--panel-strong), var(--panel));
   text-align: center;
