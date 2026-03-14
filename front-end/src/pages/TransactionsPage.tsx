@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFileCode, faFileCsv } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
@@ -11,6 +13,7 @@ import {
   scanTransactionReceipt,
   updateMyTransaction,
 } from "../lib/api";
+import { buildExportDateStamp, downloadTextFile, rowsToCsv } from "../lib/export";
 import { useAuth } from "../state/AuthContext";
 import type { TransactionType, UserTransaction } from "../types/auth";
 
@@ -77,6 +80,7 @@ export default function TransactionsPage() {
   }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
   const canScanReceipt = Boolean(user?.subscribers);
   const canUseRecurringTransactions = Boolean(user?.subscribers);
+  const canExportTransactions = Boolean(user?.subscribers);
 
   async function loadTransactionsData() {
     setDataError("");
@@ -303,6 +307,37 @@ export default function TransactionsPage() {
     setIsDeletingTransactionId(null);
   }
 
+  function exportTransactionsAsCsv() {
+    if (!canExportTransactions || transactions.length === 0) {
+      return;
+    }
+
+    const rows = transactions.map((transaction) => ({
+      transactionDate: transaction.transactionDate,
+      amountCad: transaction.amountCad,
+      type: transaction.type,
+      description: transaction.description,
+    }));
+    const csv = rowsToCsv(rows);
+    const dateStamp = buildExportDateStamp();
+    downloadTextFile(`personal-transactions-${dateStamp}.csv`, csv, "text/csv;charset=utf-8");
+  }
+
+  function exportTransactionsAsJson() {
+    if (!canExportTransactions || transactions.length === 0) {
+      return;
+    }
+
+    const payload = transactions.map((transaction) => ({
+      transactionDate: transaction.transactionDate,
+      amountCad: transaction.amountCad,
+      type: transaction.type,
+      description: transaction.description,
+    }));
+    const dateStamp = buildExportDateStamp();
+    downloadTextFile(`personal-transactions-${dateStamp}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+  }
+
   return (
     <main className="home-shell">
       <section className="page-title-row page-title-actions">
@@ -313,6 +348,34 @@ export default function TransactionsPage() {
       </section>
 
       <section className="dashboard-card transactions-card">
+        <div className="card-header-actions-row">
+          <h2>Transaction List</h2>
+          <div className="export-actions" role="group" aria-label="Export transactions">
+            <button
+              className="secondary-button export-button"
+              type="button"
+              onClick={exportTransactionsAsCsv}
+              disabled={!canExportTransactions || transactions.length === 0}
+              aria-label="Export transactions as CSV"
+            >
+              <FontAwesomeIcon icon={faFileCsv} aria-hidden="true" />
+              <span>CSV</span>
+            </button>
+            <button
+              className="secondary-button export-button"
+              type="button"
+              onClick={exportTransactionsAsJson}
+              disabled={!canExportTransactions || transactions.length === 0}
+              aria-label="Export transactions as JSON"
+            >
+              <FontAwesomeIcon icon={faFileCode} aria-hidden="true" />
+              <span>JSON</span>
+            </button>
+          </div>
+        </div>
+
+        {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
+
         {transactions.length > 0 ? (
           <div className="transactions-list" role="list">
             {transactions.map((transaction) => (

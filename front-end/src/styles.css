@@ -501,6 +501,36 @@ button:disabled {
   padding-bottom: 0.85rem;
 }
 
+.card-header-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.card-top-right-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.export-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.export-button {
+  min-height: 2rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .household-inline-form {
   display: grid;
   grid-template-columns: 1fr;

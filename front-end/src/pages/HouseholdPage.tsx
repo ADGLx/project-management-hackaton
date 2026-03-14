@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFileCode, faFileCsv } from "@fortawesome/free-solid-svg-icons";
 import MobileNav from "../components/MobileNav";
 import {
   createMyHousehold,
@@ -14,6 +16,7 @@ import {
   scanTransactionReceipt,
   updateMyHouseholdTransaction,
 } from "../lib/api";
+import { buildExportDateStamp, downloadTextFile, rowsToCsv } from "../lib/export";
 import { useAuth } from "../state/AuthContext";
 import type { Household, HouseholdSettlementSummary, HouseholdTransaction, TransactionType } from "../types/auth";
 
@@ -101,6 +104,7 @@ export default function HouseholdPage() {
   }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
   const canScanReceipt = Boolean(user?.subscribers);
   const canUseRecurringTransactions = Boolean(user?.subscribers);
+  const canExportTransactions = Boolean(user?.subscribers);
 
   async function loadHouseholdFinanceData() {
     if (!household) {
@@ -425,6 +429,41 @@ export default function HouseholdPage() {
     await loadHouseholdFinanceData();
   }
 
+  function exportHouseholdTransactionsAsCsv() {
+    if (!canExportTransactions || householdTransactions.length === 0) {
+      return;
+    }
+
+    const rows = householdTransactions.map((transaction) => ({
+      transactionDate: transaction.transactionDate,
+      amountCad: transaction.amountCad,
+      type: transaction.type,
+      description: transaction.description,
+      createdByName: transaction.createdByName,
+      participants: transaction.participants.map((participant) => participant.name).join(", "),
+    }));
+    const csv = rowsToCsv(rows);
+    const dateStamp = buildExportDateStamp();
+    downloadTextFile(`household-transactions-${dateStamp}.csv`, csv, "text/csv;charset=utf-8");
+  }
+
+  function exportHouseholdTransactionsAsJson() {
+    if (!canExportTransactions || householdTransactions.length === 0) {
+      return;
+    }
+
+    const payload = householdTransactions.map((transaction) => ({
+      transactionDate: transaction.transactionDate,
+      amountCad: transaction.amountCad,
+      type: transaction.type,
+      description: transaction.description,
+      createdByName: transaction.createdByName,
+      participants: transaction.participants.map((participant) => participant.name),
+    }));
+    const dateStamp = buildExportDateStamp();
+    downloadTextFile(`household-transactions-${dateStamp}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+  }
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -466,13 +505,39 @@ export default function HouseholdPage() {
                 <p>Only the creator can invite users. Everyone can add, edit, and delete shared transactions.</p>
               )}
 
-              <div className="household-finance-panel">
-                <div className="page-title-row page-title-actions">
-                  <h3>Shared Transactions</h3>
-                  <button type="button" onClick={openTransactionModal}>
-                    Add Shared Transaction
-                  </button>
-                </div>
+                <div className="household-finance-panel">
+                  <div className="page-title-row page-title-actions">
+                    <h3>Shared Transactions</h3>
+                    <div className="card-top-right-actions">
+                      <div className="export-actions" role="group" aria-label="Export household transactions">
+                        <button
+                          className="secondary-button export-button"
+                          type="button"
+                          onClick={exportHouseholdTransactionsAsCsv}
+                          disabled={!canExportTransactions || householdTransactions.length === 0}
+                          aria-label="Export household transactions as CSV"
+                        >
+                          <FontAwesomeIcon icon={faFileCsv} aria-hidden="true" />
+                          <span>CSV</span>
+                        </button>
+                        <button
+                          className="secondary-button export-button"
+                          type="button"
+                          onClick={exportHouseholdTransactionsAsJson}
+                          disabled={!canExportTransactions || householdTransactions.length === 0}
+                          aria-label="Export household transactions as JSON"
+                        >
+                          <FontAwesomeIcon icon={faFileCode} aria-hidden="true" />
+                          <span>JSON</span>
+                        </button>
+                      </div>
+                      <button type="button" onClick={openTransactionModal}>
+                        Add Shared Transaction
+                      </button>
+                    </div>
+                  </div>
+
+                  {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
 
                 <div className="household-summary-row">
                   <p>
