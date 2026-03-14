@@ -722,7 +722,7 @@ button:disabled {
   right: 0.5rem;
   bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.4rem;
   padding: 0.4rem;
   border: 1px solid var(--border);
@@ -743,6 +743,35 @@ button:disabled {
   font-size: 0.83rem;
   font-weight: 700;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.mobile-nav-alert-button {
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.mobile-nav-alert-icon-wrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.mobile-nav-alert-badge {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.6rem;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: var(--error);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  padding: 0 0.22rem;
 }
 
 .mobile-nav-icon {
@@ -780,6 +809,43 @@ button:disabled {
   padding: 1rem;
   display: grid;
   gap: 0.8rem;
+}
+
+.alerts-modal {
+  width: min(560px, 100%);
+}
+
+.alerts-list {
+  display: grid;
+  gap: 0.6rem;
+  max-height: min(56vh, 460px);
+  overflow: auto;
+}
+
+.alert-row {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 0.72rem 0.78rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.alert-copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.alert-status-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.alert-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
 }
 
 .modal-title-row {

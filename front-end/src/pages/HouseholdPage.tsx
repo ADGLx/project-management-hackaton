@@ -236,7 +236,7 @@ export default function HouseholdPage() {
 
     setHousehold(result.household);
     setInviteEmail("");
-    setInviteSuccess("Member added to household.");
+    setInviteSuccess("Invite sent. The user will appear in the members list once they accept the invitation.");
   }
 
   async function onLeaveHousehold() {

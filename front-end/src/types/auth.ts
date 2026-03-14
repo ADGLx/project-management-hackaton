@@ -138,6 +138,31 @@ export interface HouseholdLeaveSuccess {
   ok: true;
 }
 
+export type AlertKind = "household_invite";
+export type AlertStatus = "pending" | "accepted" | "declined";
+
+export interface UserAlert {
+  id: string;
+  kind: AlertKind;
+  householdId: string | null;
+  householdName: string | null;
+  invitedByUserId: string | null;
+  invitedByName: string | null;
+  status: AlertStatus;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export interface AlertsFetchSuccess {
+  ok: true;
+  alerts: UserAlert[];
+}
+
+export interface AlertRespondSuccess {
+  ok: true;
+  alert: UserAlert;
+}
+
 export interface HouseholdTransaction {
   id: string;
   amountCad: number;
@@ -206,6 +231,8 @@ export type HouseholdFetchResult = HouseholdFetchSuccess | AuthFailure;
 export type HouseholdCreateResult = HouseholdCreateSuccess | AuthFailure;
 export type HouseholdInviteResult = HouseholdInviteSuccess | AuthFailure;
 export type HouseholdLeaveResult = HouseholdLeaveSuccess | AuthFailure;
+export type AlertsFetchResult = AlertsFetchSuccess | AuthFailure;
+export type AlertRespondResult = AlertRespondSuccess | AuthFailure;
 export type HouseholdTransactionListResult = HouseholdTransactionListSuccess | AuthFailure;
 export type HouseholdTransactionCreateResult = HouseholdTransactionCreateSuccess | AuthFailure;
 export type HouseholdTransactionUpdateResult = HouseholdTransactionUpdateSuccess | AuthFailure;
@@ -295,6 +322,16 @@ export interface HouseholdResponseBody {
 
 export interface HouseholdLeaveResponseBody {
   ok?: boolean;
+  message?: string;
+}
+
+export interface AlertsResponseBody {
+  alerts?: UserAlert[];
+  message?: string;
+}
+
+export interface AlertResponseBody {
+  alert?: UserAlert;
   message?: string;
 }
 

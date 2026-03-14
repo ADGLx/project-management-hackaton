@@ -144,8 +144,13 @@ router.post("/:householdId/invite", requireAuth, async (req, res) => {
       return;
     }
 
-    if (message === "INVITEE_ALREADY_IN_HOUSEHOLD" || postgresErrorCode === "23505") {
+    if (message === "INVITEE_ALREADY_IN_HOUSEHOLD") {
       res.status(409).json({ message: "This user is already in a household" });
+      return;
+    }
+
+    if (message === "INVITEE_ALREADY_INVITED" || postgresErrorCode === "23505") {
+      res.status(409).json({ message: "This user already has a pending invite" });
       return;
     }
 

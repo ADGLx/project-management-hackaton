@@ -1,4 +1,5 @@
 import { pool } from "./pool.js";
+import { createHouseholdInviteAlert } from "./alerts.js";
 
 interface HouseholdRow {
   id: string;
@@ -176,13 +177,16 @@ export async function inviteUserToHouseholdByEmail(
     throw new Error("INVITEE_ALREADY_IN_HOUSEHOLD");
   }
 
-  await pool.query(
-    `
-      INSERT INTO household_members (household_id, user_id, invited_by_user_id)
-      VALUES ($1, $2, $3)
-    `,
-    [householdId, invitee.id, requesterUserId],
+  const existingPendingInvite = await pool.query<{ id: string }>(
+    "SELECT id FROM alerts WHERE user_id = $1 AND household_id = $2 AND kind = 'household_invite' AND status = 'pending' LIMIT 1",
+    [invitee.id, householdId],
   );
+
+  if (existingPendingInvite.rows[0]) {
+    throw new Error("INVITEE_ALREADY_INVITED");
+  }
+
+  await createHouseholdInviteAlert(invitee.id, householdId, requesterUserId);
 
   const members = await getHouseholdMembers(household.id);
   return toHousehold(household, members);

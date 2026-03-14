@@ -1,4 +1,8 @@
 import type {
+  AlertRespondResult,
+  AlertResponseBody,
+  AlertsFetchResult,
+  AlertsResponseBody,
   AuthResponseBody,
   AuthResult,
   BudgetFetchResult,
@@ -730,6 +734,78 @@ export async function leaveMyHousehold(): Promise<HouseholdLeaveResult> {
     }
 
     return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyAlerts(): Promise<AlertsFetchResult> {
+  try {
+    const response = await fetch(`${API_URL}/alerts/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<AlertsResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load alerts",
+      };
+    }
+
+    if (!Array.isArray(data?.alerts)) {
+      return {
+        ok: false,
+        message: "Server returned an invalid alerts response",
+      };
+    }
+
+    return {
+      ok: true,
+      alerts: data.alerts,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function respondToAlert(alertId: string, decision: "accept" | "decline"): Promise<AlertRespondResult> {
+  try {
+    const response = await fetch(`${API_URL}/alerts/${alertId}/respond`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ decision }),
+    });
+
+    const data = await readJson<AlertResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to respond to invite",
+      };
+    }
+
+    if (!data?.alert) {
+      return {
+        ok: false,
+        message: "Server returned an invalid alert response",
+      };
+    }
+
+    return {
+      ok: true,
+      alert: data.alert,
+    };
   } catch (error) {
     return {
       ok: false,

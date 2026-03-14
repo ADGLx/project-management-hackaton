@@ -4,6 +4,7 @@ import cors from "cors";
 import express from "express";
 import { env } from "./config/env.js";
 import authRouter from "./routes/auth.js";
+import alertsRouter from "./routes/alerts.js";
 import budgetRouter from "./routes/budget.js";
 import householdFinancesRouter from "./routes/householdFinances.js";
 import householdsRouter from "./routes/households.js";
@@ -53,6 +54,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/alerts", alertsRouter);
 app.use("/budget", budgetRouter);
 app.use("/households", householdsRouter);
 app.use("/household-finances", householdFinancesRouter);
