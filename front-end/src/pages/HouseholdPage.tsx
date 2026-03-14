@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCamera, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCamera, faCircleInfo, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import MobileNav from "../components/MobileNav";
 import PageSidePanel from "../components/PageSidePanel";
@@ -543,12 +543,18 @@ export default function HouseholdPage() {
             ⚜
           </span>
           <span>Household</span>
+          {household ? (
+            <button
+              className="dashboard-title-info-button"
+              type="button"
+              onClick={() => setIsHouseholdInfoModalOpen(true)}
+              aria-label="Open household info"
+              title="Household Info"
+            >
+              <FontAwesomeIcon icon={faCircleInfo} aria-hidden="true" />
+            </button>
+          ) : null}
         </h1>
-        {household ? (
-          <button className="secondary-button" type="button" onClick={() => setIsHouseholdInfoModalOpen(true)}>
-            Household Info
-          </button>
-        ) : null}
       </section>
 
       <section className="dashboard-card">
@@ -952,6 +958,10 @@ export default function HouseholdPage() {
                         Close
                       </button>
                     </div>
+
+                    <p>
+                      Household name: <strong>{household.name}</strong>
+                    </p>
 
                     <div className="household-members">
                       <h3>Members</h3>

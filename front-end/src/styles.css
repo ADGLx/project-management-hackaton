@@ -269,6 +269,35 @@ button:disabled {
   color: var(--primary);
 }
 
+.dashboard-title-info-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-strong);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
+}
+
+.dashboard-title-info-button:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+
+.dashboard-title-info-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 2px;
+}
+
+.dashboard-title-info-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .page-title-row {
   display: flex;
   align-items: center;
