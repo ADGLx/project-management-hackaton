@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileCode, faFileCsv } from "@fortawesome/free-solid-svg-icons";
+import { useSearchParams } from "react-router-dom";
 import MobileNav from "../components/MobileNav";
 import {
   createMyHousehold,
@@ -40,6 +41,7 @@ type SortOption = "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc";
 
 export default function HouseholdPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [household, setHousehold] = useState<Household | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState("");
@@ -220,6 +222,17 @@ export default function HouseholdPage() {
 
     void loadHouseholdFinanceData();
   }, [household]);
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1" || !household) {
+      return;
+    }
+
+    openTransactionModal();
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("new");
+    setSearchParams(nextParams, { replace: true });
+  }, [household, searchParams, setSearchParams, transactionTypes]);
 
   async function onCreateHousehold() {
     setCreateError("");
