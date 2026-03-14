@@ -46,6 +46,21 @@ export default function PageSidePanel() {
             aria-label="Side panel"
             onClick={(event) => event.stopPropagation()}
           >
+            <div className="side-panel-header">
+              <span className="side-panel-brand-icon" aria-hidden="true">
+                ⚜
+              </span>
+              <button
+                className="secondary-button side-panel-close"
+                type="button"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close side panel"
+                title="Close side panel"
+              >
+                {">"}
+              </button>
+            </div>
+
             <div className="side-panel-actions">
               <button className="secondary-button side-panel-action" type="button" onClick={() => navigate("/user")}>
                 Profile

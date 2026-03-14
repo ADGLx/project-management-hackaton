@@ -1155,7 +1155,7 @@ button:disabled {
   left: 0;
   top: 0;
   bottom: 0;
-  width: min(300px, 82vw);
+  width: min(190px, 50vw);
   border-right: 1px solid var(--border);
   background: var(--panel-strong);
   box-shadow: var(--shadow);
@@ -1165,6 +1165,34 @@ button:disabled {
 .side-panel-actions {
   display: grid;
   gap: 0.55rem;
+}
+
+.side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.side-panel-brand-icon {
+  order: 1;
+  color: var(--primary);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.side-panel-close {
+  order: 2;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  border-radius: 10px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .side-panel-action {
