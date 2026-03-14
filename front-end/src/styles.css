@@ -570,6 +570,22 @@ button:disabled {
   font-weight: 700;
 }
 
+.top-spending-progress {
+  margin-top: 0.15rem;
+  width: 100%;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--panel) 74%, var(--text) 26%);
+  overflow: hidden;
+}
+
+.top-spending-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
 .chart-card-toolbar {
   display: flex;
   align-items: center;

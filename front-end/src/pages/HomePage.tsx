@@ -326,6 +326,9 @@ export default function HomePage() {
                       </div>
                       <p className="top-spending-type">{entry.name}</p>
                       <p className="top-spending-amount">{formattedCurrency.format(entry.value)}</p>
+                      <div className="top-spending-progress" aria-hidden="true">
+                        <span className="top-spending-progress-fill" style={{ width: `${Math.min(sharePercent, 100)}%` }} />
+                      </div>
                     </article>
                   );
                 })}
