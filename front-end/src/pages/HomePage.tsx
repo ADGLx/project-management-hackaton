@@ -17,8 +17,16 @@ function nameFromEmail(email?: string): string {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { user, logout, profileName, apiUrl } = useAuth();
+  const { user, logout, profileName, apiUrl, budgetAmountCad } = useAuth();
   const displayName = user?.name || profileName || nameFromEmail(user?.email);
+  const formattedBudget =
+    typeof budgetAmountCad === "number"
+      ? new Intl.NumberFormat("en-CA", {
+          style: "currency",
+          currency: "CAD",
+          maximumFractionDigits: 0,
+        }).format(budgetAmountCad)
+      : "Not set";
 
   async function onLogout() {
     await logout();
@@ -37,6 +45,13 @@ export default function HomePage() {
       </section>
 
       <section className="home-grid">
+        <article className="dashboard-card">
+          <h2>Monthly Budget</h2>
+          <p>
+            <strong>{formattedBudget}</strong>
+          </p>
+        </article>
+
         <article className="dashboard-card">
           <h2>Session</h2>
           <p>

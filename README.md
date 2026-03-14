@@ -9,6 +9,7 @@ Full-stack TypeScript app with cookie-based authentication.
 ## Current features
 
 - Register, login, logout, and session restore (`/auth/me`)
+- First-login flow that requires monthly budget setup before dashboard access
 - Protected and public route gates on the frontend
 - Automatic SQL migrations on backend startup (`back-end/src/db/migrations`)
 - Health endpoint for backend + database connectivity checks (`/health`)
@@ -52,6 +53,17 @@ Note: Postgres host port is currently not exposed in `docker-compose.yml`. If yo
   - success: `200` + `{ user }`
 - `POST /auth/logout`
   - clears auth cookie
+
+## Budget API
+
+- `GET /budget/me`
+  - requires auth cookie
+  - success: `200` + `{ "budgetAmountCad": number | null }`
+- `POST /budget/me`
+  - requires auth cookie
+  - body: `{ "budgetAmountCad": 3000 }`
+  - validations: integer, greater than 0
+  - success: `200` + `{ "budgetAmountCad": number }`
 
 ## Environment variables
 

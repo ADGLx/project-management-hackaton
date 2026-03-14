@@ -29,7 +29,7 @@ export async function findUserByEmail(email: string): Promise<UserWithPassword |
   return result.rows[0] ?? null;
 }
 
-export async function findUserById(id: number): Promise<User | null> {
+export async function findUserById(id: string): Promise<User | null> {
   const query = `
     SELECT id, name, email, created_at
     FROM users

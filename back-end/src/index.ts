@@ -4,6 +4,7 @@ import cors from "cors";
 import express from "express";
 import { env } from "./config/env.js";
 import authRouter from "./routes/auth.js";
+import budgetRouter from "./routes/budget.js";
 import { runMigrations } from "./db/migrate.js";
 import { pool } from "./db/pool.js";
 
@@ -48,6 +49,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/budget", budgetRouter);
 
 async function startServer() {
   try {

@@ -1,4 +1,4 @@
-import type { AuthResponseBody, AuthResult, User } from "../types/auth";
+import type { AuthResponseBody, AuthResult, BudgetFetchResult, BudgetResponseBody, BudgetSaveResult, User } from "../types/auth";
 
 export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -75,4 +75,83 @@ export async function logoutRequest(): Promise<void> {
     method: "POST",
     credentials: "include",
   });
+}
+
+export async function getMyMonthlyBudget(): Promise<BudgetFetchResult> {
+  try {
+    const response = await fetch(`${API_URL}/budget/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<BudgetResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load budget",
+      };
+    }
+
+    if (data?.budgetAmountCad === null || data?.budgetAmountCad === undefined) {
+      return {
+        ok: true,
+        budgetAmountCad: null,
+      };
+    }
+
+    if (typeof data.budgetAmountCad !== "number") {
+      return {
+        ok: false,
+        message: "Server returned an invalid budget response",
+      };
+    }
+
+    return {
+      ok: true,
+      budgetAmountCad: data.budgetAmountCad,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function saveMyMonthlyBudget(budgetAmountCad: number): Promise<BudgetSaveResult> {
+  try {
+    const response = await fetch(`${API_URL}/budget/me`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ budgetAmountCad }),
+    });
+
+    const data = await readJson<BudgetResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to save budget",
+      };
+    }
+
+    if (typeof data?.budgetAmountCad !== "number") {
+      return {
+        ok: false,
+        message: "Server returned an invalid budget response",
+      };
+    }
+
+    return {
+      ok: true,
+      budgetAmountCad: data.budgetAmountCad,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
 }

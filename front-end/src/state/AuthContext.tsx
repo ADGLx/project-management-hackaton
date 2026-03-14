@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { API_URL, getCurrentUser, logoutRequest, sendAuthRequest } from "../lib/api";
+import { API_URL, getCurrentUser, getMyMonthlyBudget, logoutRequest, saveMyMonthlyBudget, sendAuthRequest } from "../lib/api";
 import type { AuthContextValue } from "../types/auth";
 
 const profileKey = "pmh_profile_name";
@@ -14,7 +14,22 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthContextValue["user"]>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isBudgetBootstrapping, setIsBudgetBootstrapping] = useState(false);
+  const [budgetAmountCad, setBudgetAmountCad] = useState<number | null>(null);
   const [profileName, setProfileName] = useState(() => localStorage.getItem(profileKey) ?? "");
+
+  async function refreshBudgetForCurrentUser() {
+    setIsBudgetBootstrapping(true);
+    const budgetResult = await getMyMonthlyBudget();
+
+    if (budgetResult.ok) {
+      setBudgetAmountCad(budgetResult.budgetAmountCad);
+    } else {
+      setBudgetAmountCad(null);
+    }
+
+    setIsBudgetBootstrapping(false);
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -22,10 +37,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     async function bootstrap() {
       const currentUser = await getCurrentUser();
 
-      if (isMounted) {
-        setUser(currentUser);
-        setIsBootstrapping(false);
+      if (!isMounted) {
+        return;
       }
+
+      setUser(currentUser);
+
+      if (!currentUser) {
+        setBudgetAmountCad(null);
+        setIsBudgetBootstrapping(false);
+        setIsBootstrapping(false);
+        return;
+      }
+
+      setIsBudgetBootstrapping(true);
+      const budgetResult = await getMyMonthlyBudget();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (budgetResult.ok) {
+        setBudgetAmountCad(budgetResult.budgetAmountCad);
+      } else {
+        setBudgetAmountCad(null);
+      }
+
+      setIsBudgetBootstrapping(false);
+      setIsBootstrapping(false);
     }
 
     void bootstrap();
@@ -40,6 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (result.ok) {
       setUser(result.user);
+      await refreshBudgetForCurrentUser();
     }
 
     return result;
@@ -53,6 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     setUser(result.user);
+    await refreshBudgetForCurrentUser();
     const savedName = result.user.name || name.trim();
 
     if (savedName) {
@@ -68,20 +109,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await logoutRequest();
     } finally {
       setUser(null);
+      setBudgetAmountCad(null);
+      setIsBudgetBootstrapping(false);
     }
+  }
+
+  async function refreshBudget() {
+    if (!user) {
+      setBudgetAmountCad(null);
+      setIsBudgetBootstrapping(false);
+      return;
+    }
+
+    await refreshBudgetForCurrentUser();
+  }
+
+  async function saveMonthlyBudget(budget: number) {
+    const result = await saveMyMonthlyBudget(budget);
+
+    if (result.ok) {
+      setBudgetAmountCad(result.budgetAmountCad);
+    }
+
+    return result;
   }
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isBootstrapping,
+      isBudgetBootstrapping,
+      budgetAmountCad,
+      hasCompletedBudgetSetup: typeof budgetAmountCad === "number" && budgetAmountCad > 0,
       login,
       register,
+      refreshBudget,
+      saveMonthlyBudget,
       logout,
       profileName,
       apiUrl: API_URL,
     }),
-    [user, isBootstrapping, profileName],
+    [user, isBootstrapping, isBudgetBootstrapping, budgetAmountCad, profileName],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
