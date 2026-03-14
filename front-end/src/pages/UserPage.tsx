@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AddTransactionFab from "../components/AddTransactionFab";
+import MobileNav from "../components/MobileNav";
 import { createMyTransactionType, deleteMyTransactionType, getMyTransactionTypes } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
 import type { TransactionType } from "../types/auth";
@@ -78,21 +80,11 @@ export default function UserPage() {
 
   return (
     <main className="home-shell">
-      <section className="home-hero dashboard-header">
-        <div>
-          <p className="eyebrow">User Page</p>
-          <h1>{user?.name ?? "Profile"}</h1>
-          <p className="dashboard-description">Manage your transaction types used in the transaction form.</p>
-        </div>
-
-        <div className="header-actions">
-          <button className="secondary-button" type="button" onClick={() => navigate("/")}>
-            Back to dashboard
-          </button>
-          <button className="secondary-button" type="button" onClick={onLogout}>
-            Logout
-          </button>
-        </div>
+      <section className="page-title-row page-title-actions">
+        <h1>{user?.name ?? "Profile"}</h1>
+        <button className="secondary-button" type="button" onClick={onLogout}>
+          Logout
+        </button>
       </section>
 
       <section className="dashboard-card">
@@ -128,7 +120,7 @@ export default function UserPage() {
               <article className="type-row" role="listitem" key={transactionType.id}>
                 <p className="transaction-merchant">{transactionType.name}</p>
                 <button
-                  className="secondary-button transaction-action"
+                  className="secondary-button"
                   type="button"
                   onClick={() => void onDeleteType(transactionType.id)}
                   disabled={isDeletingTypeId === transactionType.id || isSaving}
@@ -140,6 +132,9 @@ export default function UserPage() {
           </div>
         )}
       </section>
+
+      <AddTransactionFab />
+      <MobileNav />
     </main>
   );
 }
