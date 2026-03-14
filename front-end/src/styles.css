@@ -1045,7 +1045,8 @@ button:disabled {
 }
 
 .transactions-list {
-  max-height: 340px;
+  --household-transaction-row-height: 3.35rem;
+  max-height: calc((var(--household-transaction-row-height) * 4) + 1.26rem);
   overflow: auto;
   display: grid;
   gap: 0.42rem;
@@ -1079,6 +1080,7 @@ button:disabled {
   text-align: left;
   box-shadow: none;
   color: var(--text);
+  min-height: var(--household-transaction-row-height);
 }
 
 .household-transaction-row:hover {

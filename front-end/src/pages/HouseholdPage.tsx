@@ -772,6 +772,8 @@ export default function HouseholdPage() {
                     </div>
                   ) : null}
 
+                  <h3 className="household-bills-subtitle">Bills</h3>
+                  <hr className="household-bills-separator" />
                   <div className="page-title-row page-title-actions">
                     <button
                       className="secondary-button filter-sort-button filter-sort-icon-button"
@@ -837,9 +839,6 @@ export default function HouseholdPage() {
                   ) : null}
 
                   {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
-
-                  <h3 className="household-bills-subtitle">Bills</h3>
-                  <hr className="household-bills-separator" />
 
                 {isFinanceLoading ? (
                   <p>Loading shared data...</p>
