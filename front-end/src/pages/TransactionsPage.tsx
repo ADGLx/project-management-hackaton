@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCamera, faFileCode, faFileCsv } from "@fortawesome/free-solid-svg-icons";
+import { faCamera, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
@@ -383,7 +383,7 @@ export default function TransactionsPage() {
     <main className="home-shell">
       <section className="page-title-row page-title-actions">
         <h1>Transactions</h1>
-        <button type="button" onClick={openTransactionModal}>
+        <button className="compact-primary-button" type="button" onClick={openTransactionModal}>
           Add Transaction
         </button>
       </section>
@@ -506,6 +506,16 @@ export default function TransactionsPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-title-row">
+              <button
+                className="secondary-button modal-close-button"
+                type="button"
+                onClick={closeTransactionModal}
+                disabled={isSavingTransaction || isExtractingReceipt}
+                aria-label="Close transaction modal"
+                title="Close"
+              >
+                <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
+              </button>
               <h2 id="transaction-modal-title">{editingTransactionId ? "Edit Transaction" : "Add Transaction"}</h2>
               {!editingTransactionId ? (
                 <button
@@ -697,14 +707,6 @@ export default function TransactionsPage() {
               <div className="modal-actions">
                 <button type="submit" disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}>
                   {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
-                </button>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={closeTransactionModal}
-                  disabled={isSavingTransaction || isExtractingReceipt}
-                >
-                  Cancel
                 </button>
               </div>
             </form>

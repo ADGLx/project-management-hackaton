@@ -200,6 +200,11 @@ button:disabled {
   transform: none;
 }
 
+.compact-primary-button {
+  padding: 0.62rem 0.8rem;
+  font-size: 0.9rem;
+}
+
 .secondary-button {
   background: transparent;
   border: 1px solid var(--border);
@@ -1185,14 +1190,29 @@ button:disabled {
 }
 
 .modal-title-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
+  gap: 0.55rem;
 }
 
 .modal-title-row h2 {
   margin: 0;
+  justify-self: start;
+  text-align: left;
+}
+
+.modal-close-button {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  border-radius: 0;
+  border: 0;
+  padding: 0.2rem;
+  box-shadow: none;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
 }
 
 .scan-receipt-button {
