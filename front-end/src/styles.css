@@ -785,6 +785,15 @@ button:disabled {
   font-size: 0.84rem;
 }
 
+.filter-sort-icon-button {
+  width: 2.2rem;
+  min-width: 2.2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .filter-sort-panel {
   display: grid;
   grid-template-columns: 1fr;
@@ -916,11 +925,13 @@ button:disabled {
 .household-settlement-card {
   border: 1px dashed var(--border);
   border-radius: 10px;
-  padding: 0.65rem 0.72rem;
+  padding: 0.65rem 0.72rem 0;
   background: var(--panel);
   display: grid;
   gap: 0.45rem;
   align-content: start;
+  min-height: 220px;
+  overflow: hidden;
 }
 
 .household-settlement-card-header {
@@ -942,8 +953,27 @@ button:disabled {
 }
 
 .household-settlement-details-button {
-  justify-self: start;
+  width: calc(100% + 1.44rem);
+  min-height: 2.25rem;
+  padding: 0.35rem 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: auto;
+  margin-left: -0.72rem;
+  margin-right: -0.72rem;
+  margin-bottom: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.household-settlement-details-modal {
+  width: min(520px, 100%);
 }
 
 .household-summary-row {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarDays, faCamera, faCircleInfo, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCalendarDays, faCamera, faCircleInfo, faFileCode, faFileCsv, faFilter, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import MobileNav from "../components/MobileNav";
 import PageSidePanel from "../components/PageSidePanel";
@@ -43,6 +43,7 @@ function currentMonthInputValue(): string {
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 type RecurrenceEndMode = "never" | "onDate" | "afterOccurrences";
 type SortOption = "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc";
+type SettlementDetailsModal = "owedToYou" | "youOwe";
 
 export default function HouseholdPage() {
   const { user } = useAuth();
@@ -93,8 +94,7 @@ export default function HouseholdPage() {
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
   const [selectedSortOption, setSelectedSortOption] = useState<SortOption>("dateDesc");
   const [selectedSettlementMonth, setSelectedSettlementMonth] = useState(currentMonthInputValue);
-  const [isOwedToYouDetailsOpen, setIsOwedToYouDetailsOpen] = useState(false);
-  const [isYouOweDetailsOpen, setIsYouOweDetailsOpen] = useState(false);
+  const [settlementDetailsModal, setSettlementDetailsModal] = useState<SettlementDetailsModal | null>(null);
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
@@ -501,6 +501,10 @@ export default function HouseholdPage() {
     setSelectedSettlementMonth(nextMonth);
   }
 
+  function closeSettlementDetailsModal() {
+    setSettlementDetailsModal(null);
+  }
+
   function exportHouseholdTransactionsAsCsv() {
     if (!canExportTransactions || householdTransactions.length === 0) {
       return;
@@ -540,16 +544,17 @@ export default function HouseholdPage() {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         closeHouseholdInfoModal();
+        closeSettlementDetailsModal();
       }
     }
 
-    if (!isHouseholdInfoModalOpen) {
+    if (!isHouseholdInfoModalOpen && !settlementDetailsModal) {
       return;
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isHouseholdInfoModalOpen, isInviting, isLeaving]);
+  }, [isHouseholdInfoModalOpen, isInviting, isLeaving, settlementDetailsModal]);
 
   return (
     <main className="home-shell">
@@ -618,18 +623,10 @@ export default function HouseholdPage() {
                         <p>No one owes you for this month.</p>
                       )}
 
-                      {isOwedToYouDetailsOpen ? (
-                        <p id="owed-to-you-details" className="household-settlement-detail-note">
-                          Based on shared transactions for {selectedSettlementMonth}. Amounts are netted per member.
-                        </p>
-                      ) : null}
-
                       <button
                         className="secondary-button household-settlement-details-button"
                         type="button"
-                        onClick={() => setIsOwedToYouDetailsOpen((current) => !current)}
-                        aria-expanded={isOwedToYouDetailsOpen}
-                        aria-controls="owed-to-you-details"
+                        onClick={() => setSettlementDetailsModal("owedToYou")}
                       >
                         Details
                       </button>
@@ -652,33 +649,74 @@ export default function HouseholdPage() {
                         <p>You owe no one.</p>
                       )}
 
-                      {isYouOweDetailsOpen ? (
-                        <p id="you-owe-details" className="household-settlement-detail-note">
-                          Based on shared transactions for {selectedSettlementMonth}. Amounts are netted per member.
-                        </p>
-                      ) : null}
-
                       <button
                         className="secondary-button household-settlement-details-button"
                         type="button"
-                        onClick={() => setIsYouOweDetailsOpen((current) => !current)}
-                        aria-expanded={isYouOweDetailsOpen}
-                        aria-controls="you-owe-details"
+                        onClick={() => setSettlementDetailsModal("youOwe")}
                       >
                         Details
                       </button>
                     </section>
                   </div>
 
+                  {settlementDetailsModal ? (
+                    <div className="modal-overlay" role="presentation" onClick={closeSettlementDetailsModal}>
+                      <section
+                        className="modal-card household-settlement-details-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="household-settlement-details-title"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="page-title-row page-title-actions">
+                          <h3 id="household-settlement-details-title">{settlementDetailsModal === "owedToYou" ? "Owed to you" : "You owe"}</h3>
+                          <button className="secondary-button" type="button" onClick={closeSettlementDetailsModal}>
+                            Close
+                          </button>
+                        </div>
+
+                        <p className="household-settlement-detail-note">
+                          This is the net balance for {selectedSettlementMonth}, calculated from all shared transactions and split participants.
+                        </p>
+
+                        {settlementDetailsModal === "owedToYou" ? (
+                          householdSettlement?.owedToYou.length ? (
+                            <ul className="household-owe-list">
+                              {householdSettlement.owedToYou.map((line) => (
+                                <li key={`detail-${line.fromUserId}-${line.amountCad}`}>
+                                  {line.fromName} owes you <strong>{formattedCurrency.format(line.amountCad)}</strong>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No one owes you.</p>
+                          )
+                        ) : householdSettlement?.youOwe.length ? (
+                          <ul className="household-owe-list">
+                            {householdSettlement.youOwe.map((line) => (
+                              <li key={`detail-${line.toUserId}-${line.amountCad}`}>
+                                You owe {line.toName} <strong>{formattedCurrency.format(line.amountCad)}</strong>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>You owe no one.</p>
+                        )}
+                      </section>
+                    </div>
+                  ) : null}
+
                   <div className="page-title-row page-title-actions">
                     <button
-                      className="secondary-button filter-sort-button"
+                      className="secondary-button filter-sort-button filter-sort-icon-button"
                       type="button"
                       onClick={() => setIsFilterSortOpen((current) => !current)}
                       aria-expanded={isFilterSortOpen}
                       aria-controls="shared-transactions-filter-sort-panel"
+                      aria-label="Toggle filter and sort"
+                      title="Filter & Sort"
                     >
-                      Filter & Sort
+                      <FontAwesomeIcon icon={faFilter} aria-hidden="true" />
                     </button>
                     <div className="card-top-right-actions">
                       <div className="export-actions" role="group" aria-label="Export household transactions">
@@ -703,9 +741,6 @@ export default function HouseholdPage() {
                           <span>JSON</span>
                         </button>
                       </div>
-                      <button className="compact-primary-button" type="button" onClick={openTransactionModal}>
-                        Add Shared Transaction
-                      </button>
                     </div>
                   </div>
 
