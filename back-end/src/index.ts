@@ -5,6 +5,7 @@ import express from "express";
 import { env } from "./config/env.js";
 import authRouter from "./routes/auth.js";
 import budgetRouter from "./routes/budget.js";
+import transactionsRouter from "./routes/transactions.js";
 import { runMigrations } from "./db/migrate.js";
 import { pool } from "./db/pool.js";
 
@@ -50,6 +51,7 @@ app.get("/", (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/budget", budgetRouter);
+app.use("/transactions", transactionsRouter);
 
 async function startServer() {
   try {

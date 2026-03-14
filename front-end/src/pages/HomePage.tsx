@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { getMyMonthlyBudgetHistory } from "../lib/api";
+import { createMyTransaction, getMyMonthlyBudgetHistory, getMyTransactionHistory, getMyTransactions } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
+import type { BudgetHistoryPoint, MonthlySpendingPoint, UserTransaction } from "../types/auth";
 
 function nameFromEmail(email?: string): string {
   if (!email) {
@@ -30,14 +31,49 @@ function monthLabelFromMonthStart(monthStart: string): string {
   return monthLabels[monthIndex];
 }
 
+function todayAsDateInputValue(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatDateForDisplay(dateValue: string): string {
+  const [year, month, day] = dateValue.split("-");
+
+  if (!year || !month || !day) {
+    return dateValue;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function monthSortKey(monthStart: string): number {
+  const [yearPart, monthPart] = monthStart.split("-");
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month)) {
+    return 0;
+  }
+
+  return year * 100 + month;
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, profileName, budgetAmountCad, saveMonthlyBudget } = useAuth();
-  const [historyBudgetByMonth, setHistoryBudgetByMonth] = useState<Record<string, number>>({});
+  const [budgetHistory, setBudgetHistory] = useState<BudgetHistoryPoint[]>([]);
+  const [spendingHistory, setSpendingHistory] = useState<MonthlySpendingPoint[]>([]);
+  const [transactions, setTransactions] = useState<UserTransaction[]>([]);
+  const [dataError, setDataError] = useState("");
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState("");
   const [budgetError, setBudgetError] = useState("");
   const [isSavingBudget, setIsSavingBudget] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isSavingTransaction, setIsSavingTransaction] = useState(false);
+  const [transactionError, setTransactionError] = useState("");
+  const [transactionAmountDraft, setTransactionAmountDraft] = useState("");
+  const [transactionTypeDraft, setTransactionTypeDraft] = useState("");
+  const [transactionDateDraft, setTransactionDateDraft] = useState(todayAsDateInputValue);
   const displayName = user?.name || profileName || nameFromEmail(user?.email);
   const formattedBudget =
     typeof budgetAmountCad === "number"
@@ -48,30 +84,65 @@ export default function HomePage() {
         }).format(budgetAmountCad)
       : "Not set";
 
-  const placeholderMonthlySpending = [
-    { month: "Oct", budget: 3200, spending: 2980 },
-    { month: "Nov", budget: 3200, spending: 3050 },
-    { month: "Dec", budget: 3400, spending: 3325 },
-    { month: "Jan", budget: 3600, spending: 3510 },
-    { month: "Feb", budget: 3600, spending: 3260 },
-    { month: "Mar", budget: 3800, spending: 3440 },
-  ];
+  const formattedCurrency = useMemo(
+    () =>
+      new Intl.NumberFormat("en-CA", {
+        style: "currency",
+        currency: "CAD",
+        maximumFractionDigits: 2,
+      }),
+    [],
+  );
 
-  async function loadBudgetHistory() {
-    const result = await getMyMonthlyBudgetHistory();
+  const monthlyComparisonData = useMemo(() => {
+    const byMonth = new Map<string, { monthStart: string; month: string; budget: number; spending: number }>();
 
-    if (!result.ok) {
-      return;
+    for (const point of budgetHistory) {
+      const monthStart = point.monthStart;
+      byMonth.set(monthStart, {
+        monthStart,
+        month: monthLabelFromMonthStart(monthStart),
+        budget: point.budgetAmountCad,
+        spending: byMonth.get(monthStart)?.spending ?? 0,
+      });
     }
 
-    const nextByMonth: Record<string, number> = {};
-
-    for (const point of result.history) {
-      const monthLabel = monthLabelFromMonthStart(point.monthStart);
-      nextByMonth[monthLabel] = point.budgetAmountCad;
+    for (const point of spendingHistory) {
+      const monthStart = point.monthStart;
+      byMonth.set(monthStart, {
+        monthStart,
+        month: monthLabelFromMonthStart(monthStart),
+        budget: byMonth.get(monthStart)?.budget ?? 0,
+        spending: point.spendingAmountCad,
+      });
     }
 
-    setHistoryBudgetByMonth(nextByMonth);
+    return Array.from(byMonth.values()).sort((left, right) => monthSortKey(left.monthStart) - monthSortKey(right.monthStart));
+  }, [budgetHistory, spendingHistory]);
+
+  async function loadDashboardData() {
+    setDataError("");
+    const [budgetHistoryResult, spendingHistoryResult, transactionsResult] = await Promise.all([
+      getMyMonthlyBudgetHistory(),
+      getMyTransactionHistory(),
+      getMyTransactions(),
+    ]);
+
+    if (budgetHistoryResult.ok) {
+      setBudgetHistory(budgetHistoryResult.history);
+    }
+
+    if (spendingHistoryResult.ok) {
+      setSpendingHistory(spendingHistoryResult.history);
+    }
+
+    if (transactionsResult.ok) {
+      setTransactions(transactionsResult.transactions);
+    }
+
+    if (!budgetHistoryResult.ok || !spendingHistoryResult.ok || !transactionsResult.ok) {
+      setDataError("Some dashboard data could not be loaded right now.");
+    }
   }
 
   useEffect(() => {
@@ -82,20 +153,31 @@ export default function HomePage() {
         return;
       }
 
-      const result = await getMyMonthlyBudgetHistory();
+      const [budgetHistoryResult, spendingHistoryResult, transactionsResult] = await Promise.all([
+        getMyMonthlyBudgetHistory(),
+        getMyTransactionHistory(),
+        getMyTransactions(),
+      ]);
 
-      if (!isMounted || !result.ok) {
+      if (!isMounted) {
         return;
       }
 
-      const nextByMonth: Record<string, number> = {};
-
-      for (const point of result.history) {
-        const monthLabel = monthLabelFromMonthStart(point.monthStart);
-        nextByMonth[monthLabel] = point.budgetAmountCad;
+      if (budgetHistoryResult.ok) {
+        setBudgetHistory(budgetHistoryResult.history);
       }
 
-      setHistoryBudgetByMonth(nextByMonth);
+      if (spendingHistoryResult.ok) {
+        setSpendingHistory(spendingHistoryResult.history);
+      }
+
+      if (transactionsResult.ok) {
+        setTransactions(transactionsResult.transactions);
+      }
+
+      if (!budgetHistoryResult.ok || !spendingHistoryResult.ok || !transactionsResult.ok) {
+        setDataError("Some dashboard data could not be loaded right now.");
+      }
     }
 
     void load();
@@ -105,25 +187,25 @@ export default function HomePage() {
     };
   }, []);
 
-  const monthlyComparisonData = placeholderMonthlySpending.map((point) => ({
-    ...point,
-    budget: historyBudgetByMonth[point.month] ?? point.budget,
-  }));
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        if (isSavingTransaction) {
+          return;
+        }
 
-  const placeholderTransactions = [
-    { id: "TXN-001", date: "2026-03-02", merchant: "Metro Grocery", category: "Food", amountCad: 126 },
-    { id: "TXN-002", date: "2026-03-03", merchant: "Figma", category: "Software", amountCad: 22 },
-    { id: "TXN-003", date: "2026-03-04", merchant: "Uber", category: "Transport", amountCad: 34 },
-    { id: "TXN-004", date: "2026-03-06", merchant: "AWS", category: "Infrastructure", amountCad: 148 },
-    { id: "TXN-005", date: "2026-03-07", merchant: "Indie Coffee", category: "Meals", amountCad: 19 },
-    { id: "TXN-006", date: "2026-03-08", merchant: "Notion", category: "Software", amountCad: 14 },
-    { id: "TXN-007", date: "2026-03-09", merchant: "Air Canada", category: "Travel", amountCad: 388 },
-    { id: "TXN-008", date: "2026-03-10", merchant: "Slack", category: "Software", amountCad: 11 },
-    { id: "TXN-009", date: "2026-03-11", merchant: "Canva", category: "Design", amountCad: 18 },
-    { id: "TXN-010", date: "2026-03-12", merchant: "Staples", category: "Supplies", amountCad: 63 },
-    { id: "TXN-011", date: "2026-03-13", merchant: "GitHub", category: "Software", amountCad: 10 },
-    { id: "TXN-012", date: "2026-03-14", merchant: "Pizza Corner", category: "Team Meal", amountCad: 72 },
-  ];
+        setIsTransactionModalOpen(false);
+        setTransactionError("");
+      }
+    }
+
+    if (!isTransactionModalOpen) {
+      return;
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isTransactionModalOpen, isSavingTransaction]);
 
   async function onLogout() {
     await logout();
@@ -149,7 +231,7 @@ export default function HomePage() {
       return;
     }
 
-    await loadBudgetHistory();
+    await loadDashboardData();
     setIsSavingBudget(false);
     setIsEditingBudget(false);
     setBudgetError("");
@@ -166,13 +248,67 @@ export default function HomePage() {
     setIsEditingBudget(false);
   }
 
+  function openTransactionModal() {
+    setTransactionError("");
+    setTransactionAmountDraft("");
+    setTransactionTypeDraft("");
+    setTransactionDateDraft(todayAsDateInputValue());
+    setIsTransactionModalOpen(true);
+  }
+
+  function closeTransactionModal() {
+    if (isSavingTransaction) {
+      return;
+    }
+
+    setIsTransactionModalOpen(false);
+    setTransactionError("");
+  }
+
+  async function onSaveTransaction() {
+    setTransactionError("");
+
+    const amountCad = Number(transactionAmountDraft);
+    if (!Number.isFinite(amountCad) || amountCad <= 0) {
+      setTransactionError("Please enter a valid amount greater than 0.");
+      return;
+    }
+
+    if (!transactionTypeDraft.trim()) {
+      setTransactionError("Type is required.");
+      return;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(transactionDateDraft)) {
+      setTransactionError("Date must be in YYYY-MM-DD format.");
+      return;
+    }
+
+    setIsSavingTransaction(true);
+    const result = await createMyTransaction({
+      amountCad,
+      type: transactionTypeDraft.trim(),
+      transactionDate: transactionDateDraft,
+    });
+
+    if (!result.ok) {
+      setTransactionError(result.message);
+      setIsSavingTransaction(false);
+      return;
+    }
+
+    await loadDashboardData();
+    setIsSavingTransaction(false);
+    setIsTransactionModalOpen(false);
+  }
+
   return (
     <main className="home-shell">
       <section className="home-hero dashboard-header">
         <div>
           <p className="eyebrow">Control Center</p>
           <h1>Welcome, {displayName}</h1>
-          <p className="dashboard-description">Placeholder: This budgeting app helps teams track monthly spending, compare budget performance, and keep every transaction visible in one place.</p>
+          <p className="dashboard-description">Track your budget against real spending and keep every transaction in one place for clear monthly visibility.</p>
         </div>
 
         <button className="secondary-button" type="button" onClick={onLogout}>
@@ -213,7 +349,7 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            <p>Placeholder: this is your configured monthly limit in CAD.</p>
+            <p>This is your configured monthly limit in CAD.</p>
             <button className="secondary-button" type="button" onClick={startEditingBudget}>
               Edit budget
             </button>
@@ -223,48 +359,130 @@ export default function HomePage() {
 
       <section className="dashboard-card chart-card">
         <h2>Budget vs Spending (Previous Months)</h2>
-        <div className="chart-wrap">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={monthlyComparisonData} margin={{ top: 12, right: 18, left: 10, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.32} />
-              <XAxis dataKey="month" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} width={56} tickFormatter={(value) => `$${value}`} />
-              <Tooltip formatter={(value) => `CAD $${value}`} />
-              <Legend />
-              <Bar dataKey="spending" name="Spending" fill="#0e7a74" radius={[6, 6, 0, 0]} />
-              <Line
-                type="monotone"
-                dataKey="budget"
-                name="Budget"
-                stroke="#f08c3a"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+        {monthlyComparisonData.length > 0 ? (
+          <div className="chart-wrap">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={monthlyComparisonData} margin={{ top: 12, right: 18, left: 10, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.32} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} width={56} tickFormatter={(value) => `$${value}`} />
+                <Tooltip formatter={(value) => `CAD $${value}`} />
+                <Legend />
+                <Bar dataKey="spending" name="Spending" fill="#0e7a74" radius={[6, 6, 0, 0]} />
+                <Line
+                  type="monotone"
+                  dataKey="budget"
+                  name="Budget"
+                  stroke="#f08c3a"
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p>No monthly chart data yet. Add your first transaction to start tracking spending.</p>
+        )}
       </section>
 
       <section className="dashboard-card transactions-card">
         <h2>Transactions</h2>
-        <div className="transactions-list" role="list">
-          {placeholderTransactions.map((transaction) => (
-            <article className="transaction-row" role="listitem" key={transaction.id}>
-              <div>
-                <p className="transaction-merchant">{transaction.merchant}</p>
-                <p className="transaction-meta">
-                  {transaction.id} · {transaction.category}
-                </p>
-              </div>
+        {transactions.length > 0 ? (
+          <div className="transactions-list" role="list">
+            {transactions.map((transaction) => (
+              <article className="transaction-row" role="listitem" key={transaction.id}>
+                <div>
+                  <p className="transaction-merchant">{transaction.type}</p>
+                  <p className="transaction-meta">{transaction.id.slice(0, 8).toUpperCase()}</p>
+                </div>
 
-              <div className="transaction-right">
-                <p>{transaction.date}</p>
-                <p className="transaction-amount">CAD ${transaction.amountCad}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+                <div className="transaction-right">
+                  <p>{formatDateForDisplay(transaction.transactionDate)}</p>
+                  <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p>No transactions yet. Use the + button to add your first one.</p>
+        )}
       </section>
+
+      {dataError ? <p className="feedback error">{dataError}</p> : null}
+
+      <button className="fab-button" type="button" onClick={openTransactionModal} aria-label="Add transaction">
+        +
+      </button>
+
+      {isTransactionModalOpen ? (
+        <div className="modal-overlay" role="presentation" onClick={closeTransactionModal}>
+          <section
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="transaction-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="transaction-modal-title">Add Transaction</h2>
+
+            <form
+              className="transaction-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void onSaveTransaction();
+              }}
+            >
+              <label>
+                Amount (CAD)
+                <input
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  inputMode="decimal"
+                  value={transactionAmountDraft}
+                  onChange={(event) => setTransactionAmountDraft(event.target.value)}
+                  disabled={isSavingTransaction}
+                  required
+                />
+              </label>
+
+              <label>
+                Type
+                <input
+                  type="text"
+                  value={transactionTypeDraft}
+                  onChange={(event) => setTransactionTypeDraft(event.target.value)}
+                  disabled={isSavingTransaction}
+                  placeholder="e.g. groceries, tools, payroll"
+                  required
+                />
+              </label>
+
+              <label>
+                Date
+                <input
+                  type="date"
+                  value={transactionDateDraft}
+                  onChange={(event) => setTransactionDateDraft(event.target.value)}
+                  disabled={isSavingTransaction}
+                  required
+                />
+              </label>
+
+              {transactionError ? <p className="feedback error">{transactionError}</p> : null}
+
+              <div className="modal-actions">
+                <button type="submit" disabled={isSavingTransaction}>
+                  {isSavingTransaction ? "Saving..." : "Save Transaction"}
+                </button>
+                <button className="secondary-button" type="button" onClick={closeTransactionModal} disabled={isSavingTransaction}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

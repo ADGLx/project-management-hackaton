@@ -1,0 +1,87 @@
+import { pool } from "./pool.js";
+
+interface TransactionRow {
+  id: string;
+  amount_cad: number;
+  type: string;
+  transaction_date: string;
+}
+
+interface MonthlySpendingRow {
+  month_start: string;
+  spending_amount_cad: number;
+}
+
+export interface UserTransaction {
+  id: string;
+  amountCad: number;
+  type: string;
+  transactionDate: string;
+}
+
+export interface MonthlySpendingPoint {
+  monthStart: string;
+  spendingAmountCad: number;
+}
+
+export async function createUserTransaction(userId: string, amountCad: number, type: string, transactionDate: string): Promise<UserTransaction> {
+  const query = `
+    INSERT INTO transactions (user_id, amount_cad, type, transaction_date)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id, amount_cad, type, transaction_date::text
+  `;
+
+  const result = await pool.query<TransactionRow>(query, [userId, amountCad, type, transactionDate]);
+  const row = result.rows[0];
+
+  return {
+    id: row.id,
+    amountCad: row.amount_cad,
+    type: row.type,
+    transactionDate: row.transaction_date,
+  };
+}
+
+export async function getUserTransactions(userId: string, limit = 100): Promise<UserTransaction[]> {
+  const query = `
+    SELECT id, amount_cad, type, transaction_date::text
+    FROM transactions
+    WHERE user_id = $1
+    ORDER BY transaction_date DESC, created_at DESC
+    LIMIT $2
+  `;
+
+  const result = await pool.query<TransactionRow>(query, [userId, limit]);
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    amountCad: row.amount_cad,
+    type: row.type,
+    transactionDate: row.transaction_date,
+  }));
+}
+
+export async function getUserMonthlySpendingHistory(userId: string, limit = 12): Promise<MonthlySpendingPoint[]> {
+  const query = `
+    WITH monthly_spending AS (
+      SELECT
+        date_trunc('month', transaction_date)::date AS month_start,
+        SUM(amount_cad)::double precision AS spending_amount_cad
+      FROM transactions
+      WHERE user_id = $1
+      GROUP BY date_trunc('month', transaction_date)::date
+      ORDER BY month_start DESC
+      LIMIT $2
+    )
+    SELECT month_start::text, spending_amount_cad
+    FROM monthly_spending
+    ORDER BY month_start ASC
+  `;
+
+  const result = await pool.query<MonthlySpendingRow>(query, [userId, limit]);
+
+  return result.rows.map((row) => ({
+    monthStart: row.month_start,
+    spendingAmountCad: row.spending_amount_cad,
+  }));
+}

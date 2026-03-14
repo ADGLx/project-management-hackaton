@@ -6,6 +6,12 @@ import type {
   BudgetHistoryResult,
   BudgetResponseBody,
   BudgetSaveResult,
+  TransactionCreateResponseBody,
+  TransactionCreateResult,
+  TransactionHistoryResponseBody,
+  TransactionHistoryResult,
+  TransactionListResponseBody,
+  TransactionListResult,
   User,
 } from "../types/auth";
 
@@ -185,6 +191,119 @@ export async function getMyMonthlyBudgetHistory(): Promise<BudgetHistoryResult> 
       return {
         ok: false,
         message: "Server returned an invalid budget history response",
+      };
+    }
+
+    return {
+      ok: true,
+      history: data.history,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+interface CreateTransactionPayload {
+  amountCad: number;
+  type: string;
+  transactionDate: string;
+}
+
+export async function createMyTransaction(payload: CreateTransactionPayload): Promise<TransactionCreateResult> {
+  try {
+    const response = await fetch(`${API_URL}/transactions/me`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await readJson<TransactionCreateResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to save transaction",
+      };
+    }
+
+    if (!data?.transaction) {
+      return {
+        ok: false,
+        message: "Server returned an invalid transaction response",
+      };
+    }
+
+    return {
+      ok: true,
+      transaction: data.transaction,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyTransactions(): Promise<TransactionListResult> {
+  try {
+    const response = await fetch(`${API_URL}/transactions/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<TransactionListResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load transactions",
+      };
+    }
+
+    if (!Array.isArray(data?.transactions)) {
+      return {
+        ok: false,
+        message: "Server returned an invalid transactions response",
+      };
+    }
+
+    return {
+      ok: true,
+      transactions: data.transactions,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyTransactionHistory(): Promise<TransactionHistoryResult> {
+  try {
+    const response = await fetch(`${API_URL}/transactions/history`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<TransactionHistoryResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load transaction history",
+      };
+    }
+
+    if (!Array.isArray(data?.history)) {
+      return {
+        ok: false,
+        message: "Server returned an invalid transaction history response",
       };
     }
 
