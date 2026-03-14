@@ -890,38 +890,43 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
 }
 
 .household-month-title {
   margin: 0;
   color: var(--text) !important;
-  font-weight: 600;
+  font-weight: 800;
+  font-size: clamp(1.2rem, 3.8vw, 1.8rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
-.household-month-picker {
+.household-month-picker-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  padding: 0;
   background: var(--panel);
   color: var(--muted);
-  max-width: 100%;
+  max-width: none;
+  min-width: 1.7rem;
+  font-size: 0.8rem;
 }
 
-.household-month-picker input {
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  min-width: 0;
+.household-month-picker-button svg {
+  font-size: 0.8rem;
 }
 
-.household-month-picker input:focus-visible {
-  outline: none;
+.household-month-picker-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 2px;
 }
 
 .household-settlement-grid {

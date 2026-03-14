@@ -40,6 +40,28 @@ function currentMonthInputValue(): string {
   return new Date().toISOString().slice(0, 7);
 }
 
+function monthValueToLabel(monthValue: string): string {
+  if (!/^\d{4}-\d{2}$/.test(monthValue)) {
+    return monthValue;
+  }
+
+  const [yearText, monthText] = monthValue.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return monthValue;
+  }
+
+  const parsedDate = new Date(Date.UTC(year, month - 1, 1));
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return monthValue;
+  }
+
+  return parsedDate.toLocaleString("en-CA", { month: "long", timeZone: "UTC" });
+}
+
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 type RecurrenceEndMode = "never" | "onDate" | "afterOccurrences";
 type SortOption = "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc";
@@ -96,6 +118,7 @@ export default function HouseholdPage() {
   const [selectedSettlementMonth, setSelectedSettlementMonth] = useState(currentMonthInputValue);
   const [settlementDetailsModal, setSettlementDetailsModal] = useState<SettlementDetailsModal | null>(null);
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
+  const monthInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
     () =>
@@ -509,6 +532,22 @@ export default function HouseholdPage() {
     setSelectedSettlementMonth(nextMonth);
   }
 
+  function onMonthPickerButtonClick() {
+    const monthInput = monthInputRef.current;
+
+    if (!monthInput) {
+      return;
+    }
+
+    if ("showPicker" in monthInput && typeof monthInput.showPicker === "function") {
+      monthInput.showPicker();
+      return;
+    }
+
+    monthInput.click();
+    monthInput.focus();
+  }
+
   function closeSettlementDetailsModal() {
     setSettlementDetailsModal(null);
   }
@@ -597,20 +636,26 @@ export default function HouseholdPage() {
             <>
                 <div className="household-finance-panel">
                   <div className="household-month-row">
-                    <p className="household-month-title">
-                      Current Month: <strong>{selectedSettlementMonth}</strong>
-                    </p>
-                    <label className="household-month-picker" htmlFor="household-month-picker">
+                    <h2 className="household-month-title">{monthValueToLabel(selectedSettlementMonth)}</h2>
+                    <button
+                      className="secondary-button household-month-picker-button"
+                      type="button"
+                      onClick={onMonthPickerButtonClick}
+                      aria-label="Select settlement month"
+                      title="Select month"
+                    >
                       <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" />
-                      <span className="visually-hidden">Select settlement month</span>
-                      <input
-                        id="household-month-picker"
-                        type="month"
-                        value={selectedSettlementMonth}
-                        onChange={onSettlementMonthChange}
-                        max={currentMonthInputValue()}
-                      />
-                    </label>
+                    </button>
+                    <input
+                      ref={monthInputRef}
+                      id="household-month-picker"
+                      className="visually-hidden"
+                      type="month"
+                      value={selectedSettlementMonth}
+                      onChange={onSettlementMonthChange}
+                      max={currentMonthInputValue()}
+                      aria-label="Select settlement month"
+                    />
                   </div>
 
                   <div className="household-settlement-grid">
