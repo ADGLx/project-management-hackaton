@@ -1,6 +1,7 @@
 DO $$
 DECLARE
   demo_user_id UUID;
+  jan_month_start DATE;
 BEGIN
   SELECT id
   INTO demo_user_id
@@ -26,10 +27,17 @@ BEGIN
 
   INSERT INTO user_monthly_budgets (user_id, month_start, budget_amount_cad)
   VALUES
-    (demo_user_id, date_trunc('month', now())::date - INTERVAL '3 months', 2800),
-    (demo_user_id, date_trunc('month', now())::date - INTERVAL '2 months', 3200),
-    (demo_user_id, date_trunc('month', now())::date - INTERVAL '1 month', 3400),
+    (demo_user_id, (date_trunc('month', now())::date - INTERVAL '3 months')::date, 2800),
+    (demo_user_id, (date_trunc('month', now())::date - INTERVAL '2 months')::date, 3200),
+    (demo_user_id, (date_trunc('month', now())::date - INTERVAL '1 month')::date, 3400),
     (demo_user_id, date_trunc('month', now())::date, 3600)
+  ON CONFLICT (user_id, month_start)
+  DO UPDATE SET budget_amount_cad = EXCLUDED.budget_amount_cad;
+
+  jan_month_start := make_date(EXTRACT(YEAR FROM now())::int, 1, 1);
+
+  INSERT INTO user_monthly_budgets (user_id, month_start, budget_amount_cad)
+  VALUES (demo_user_id, jan_month_start, 3200)
   ON CONFLICT (user_id, month_start)
   DO UPDATE SET budget_amount_cad = EXCLUDED.budget_amount_cad;
 
@@ -47,6 +55,7 @@ BEGIN
     (demo_user_id, 33.75, 'Food', 'coffee and snacks', (date_trunc('month', now())::date + INTERVAL '1 days')::date),
     (demo_user_id, 275.20, 'Housing', 'workspace hosting cost', (date_trunc('month', now())::date + INTERVAL '5 days')::date),
     (demo_user_id, 18.99, 'Utilities', 'domain renewal', (date_trunc('month', now())::date + INTERVAL '9 days')::date),
-    (demo_user_id, 142.00, 'Entertainment', 'community event tickets', (date_trunc('month', now())::date + INTERVAL '12 days')::date)
+    (demo_user_id, 142.00, 'Entertainment', 'community event tickets', (date_trunc('month', now())::date + INTERVAL '12 days')::date),
+    (demo_user_id, 3800.00, 'Travel', 'january showcase spike', (jan_month_start + INTERVAL '18 days')::date)
   ON CONFLICT DO NOTHING;
 END $$;
