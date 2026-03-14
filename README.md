@@ -1,12 +1,19 @@
-# Project Management Hackaton - Docker Setup
+# Project Management Hackaton
 
-This project runs with Docker Compose using:
+Full-stack TypeScript app with cookie-based authentication.
 
-- Node.js backend (Express + TypeScript)
-- React + Vite frontend (TypeScript)
-- PostgreSQL 17 database
+- Frontend: React + Vite + React Router (`front-end`)
+- Backend: Express + PostgreSQL + JWT in HTTP-only cookie (`back-end`)
+- Database: PostgreSQL 17 (Docker service)
 
-## Quick start
+## Current features
+
+- Register, login, logout, and session restore (`/auth/me`)
+- Protected and public route gates on the frontend
+- Automatic SQL migrations on backend startup (`back-end/src/db/migrations`)
+- Health endpoint for backend + database connectivity checks (`/health`)
+
+## Quick start (Docker)
 
 1. Copy environment variables:
 
@@ -14,53 +21,64 @@ This project runs with Docker Compose using:
 cp .env.example .env
 ```
 
-2. Start all services:
+2. Make sure `FRONTEND_ORIGIN` in `.env` matches your frontend URL (default frontend URL is `http://localhost:5173`).
+
+3. Start all services:
 
 ```bash
 docker compose up --build
 ```
 
-3. Run typechecking locally:
-
-```bash
-cd front-end && npm install && npm run typecheck
-cd ../back-end && npm install && npm run typecheck
-```
-
 ## Services
 
-- Frontend: http://localhost:5173
-- Backend: http://localhost:3000
-- Backend health endpoint: http://localhost:3000/health
-- Postgres: localhost:5432
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:3000`
+- Backend health endpoint: `http://localhost:3000/health`
+- Postgres: runs inside Docker network as `pmh-db:5432`
 
-## Authentication endpoints
+Note: Postgres host port is currently not exposed in `docker-compose.yml`. If you need direct local access, uncomment the `db.ports` block.
 
-- `POST /auth/register` with body `{ "name": "Alex Rivera", "email": "user@example.com", "password": "password123" }`
-- `POST /auth/login` with body `{ "email": "user@example.com", "password": "password123" }`
-- `GET /auth/me` (requires auth cookie)
+## Auth API
+
+- `POST /auth/register`
+  - body: `{ "name": "Alex Rivera", "email": "user@example.com", "password": "password123" }`
+  - validations: name required (2-80 chars), valid email, password min 8 chars
+  - success: `201` + `{ user }` and auth cookie set
+- `POST /auth/login`
+  - body: `{ "email": "user@example.com", "password": "password123" }`
+  - success: `200` + `{ user }` and auth cookie set
+- `GET /auth/me`
+  - requires auth cookie
+  - success: `200` + `{ user }`
 - `POST /auth/logout`
-
-The backend uses `pg` with parameterized SQL and file-based SQL migrations. On startup it applies migrations from `back-end/src/db/migrations`.
+  - clears auth cookie
 
 ## Environment variables
 
-Set these in `.env`:
+Set these in `.env` (see `.env.example`):
 
-- `FRONTEND_ORIGIN` for CORS origin (default `http://localhost:5173`)
-- `JWT_SECRET` for signing auth tokens
-- `JWT_EXPIRES_IN` for token lifetime (default `1d`)
-- `COOKIE_SECURE` set to `true` in production HTTPS environments
-- `COOKIE_MAX_AGE_MS` for cookie lifetime in milliseconds (default `86400000`)
+- `POSTGRES_HOST` (default `pmh-db` in Docker)
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `POSTGRES_PORT` (default `5432`)
+- `BACKEND_PORT` (default `3000`)
+- `FRONTEND_PORT` (default `5173`)
+- `FRONTEND_ORIGIN` (must match the frontend URL used in browser)
+- `VITE_API_URL` (frontend API base URL, default `http://localhost:3000`)
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN` (default `1d`)
+- `COOKIE_SECURE` (`true` in production HTTPS)
+- `COOKIE_MAX_AGE_MS` (default `86400000`)
 
 ## Hot reload and bind mounts
 
-- `./front-end` is mounted into frontend container
-- `./back-end` is mounted into backend container
+- `./front-end` is mounted into the frontend container
+- `./back-end` is mounted into the backend container
 - Frontend runs `vite` in dev mode
-- Backend runs `nodemon` in dev mode
+- Backend runs `tsx watch` in dev mode
 
-Changes on your local files are reflected inside containers.
+Changes on local files are reflected inside containers.
 
 ## Scripts
 
@@ -73,6 +91,6 @@ Frontend (`front-end/package.json`):
 
 Backend (`back-end/package.json`):
 
-- `npm run dev` starts backend with `tsx watch`
-- `npm run start` starts backend with `tsx`
+- `npm run dev` starts backend with `tsx watch src/index.ts`
+- `npm run start` starts backend with `tsx src/index.ts`
 - `npm run typecheck` runs TypeScript type checking
