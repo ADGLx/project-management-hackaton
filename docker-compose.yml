@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:17
+    container_name: pmh-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pmh_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pmh_password}
+      POSTGRES_DB: ${POSTGRES_DB:-pmh_db}
+    # ports:
+    #   - "${POSTGRES_PORT:-5432}:5432" #Not exposing ports, using docker network for communication between services
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    container_name: pmh-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: ${BACKEND_PORT:-3000}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_MAX_AGE_MS: ${COOKIE_MAX_AGE_MS:-86400000}
+      POSTGRES_HOST: ${POSTGRES_HOST:-pmh-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-pmh_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pmh_password}
+      POSTGRES_DB: ${POSTGRES_DB:-pmh_db}
+    ports:
+      - "${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}" 
+    volumes:
+      - ./back-end:/app
+      - backend_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev"
+
+  frontend:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    container_name: pmh-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./front-end:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+
+volumes:
+  postgres_data:
+  backend_node_modules:
+  frontend_node_modules:
