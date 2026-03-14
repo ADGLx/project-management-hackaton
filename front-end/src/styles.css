@@ -1160,11 +1160,18 @@ button:disabled {
   background: var(--panel-strong);
   box-shadow: var(--shadow);
   padding: calc(1.1rem + env(safe-area-inset-top, 0px)) 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
 }
 
 .side-panel-actions {
   display: grid;
   gap: 0.55rem;
+}
+
+.side-panel-footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
 }
 
 .side-panel-header {

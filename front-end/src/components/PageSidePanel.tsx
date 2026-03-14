@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../state/AuthContext";
 
 export default function PageSidePanel() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -24,6 +26,11 @@ export default function PageSidePanel() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
+
+  async function onLogout() {
+    await logout();
+    navigate("/login");
+  }
 
   return (
     <>
@@ -67,6 +74,15 @@ export default function PageSidePanel() {
               </button>
               <button className="secondary-button side-panel-action" type="button" disabled>
                 Settings
+              </button>
+              <button className="secondary-button side-panel-action" type="button" onClick={() => navigate("/")}>
+                Stats
+              </button>
+            </div>
+
+            <div className="side-panel-footer">
+              <button className="secondary-button side-panel-action" type="button" onClick={() => void onLogout()}>
+                Logout
               </button>
             </div>
           </aside>
