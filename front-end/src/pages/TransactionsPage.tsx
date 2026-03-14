@@ -28,6 +28,9 @@ function formatDateForDisplay(dateValue: string): string {
   return `${year}-${month}-${day}`;
 }
 
+type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
+type RecurrenceEndMode = "never" | "onDate" | "afterOccurrences";
+
 export default function TransactionsPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,6 +46,12 @@ export default function TransactionsPage() {
   const [transactionTypeDraft, setTransactionTypeDraft] = useState("");
   const [transactionDescriptionDraft, setTransactionDescriptionDraft] = useState("");
   const [transactionDateDraft, setTransactionDateDraft] = useState(todayAsDateInputValue);
+  const [isRecurringDraft, setIsRecurringDraft] = useState(false);
+  const [recurrenceFrequencyDraft, setRecurrenceFrequencyDraft] = useState<RecurrenceFrequency>("monthly");
+  const [recurrenceStartDateDraft, setRecurrenceStartDateDraft] = useState(todayAsDateInputValue);
+  const [recurrenceEndModeDraft, setRecurrenceEndModeDraft] = useState<RecurrenceEndMode>("never");
+  const [recurrenceEndDateDraft, setRecurrenceEndDateDraft] = useState("");
+  const [recurrenceOccurrencesDraft, setRecurrenceOccurrencesDraft] = useState("12");
   const [isExtractingReceipt, setIsExtractingReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState("");
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
@@ -67,6 +76,7 @@ export default function TransactionsPage() {
     return fromServer;
   }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
   const canScanReceipt = Boolean(user?.subscribers);
+  const canUseRecurringTransactions = Boolean(user?.subscribers);
 
   async function loadTransactionsData() {
     setDataError("");
@@ -157,7 +167,14 @@ export default function TransactionsPage() {
     setTransactionAmountDraft("");
     setTransactionTypeDraft(transactionTypes[0]?.name ?? "");
     setTransactionDescriptionDraft("");
-    setTransactionDateDraft(todayAsDateInputValue());
+    const defaultDate = todayAsDateInputValue();
+    setTransactionDateDraft(defaultDate);
+    setIsRecurringDraft(false);
+    setRecurrenceFrequencyDraft("monthly");
+    setRecurrenceStartDateDraft(defaultDate);
+    setRecurrenceEndModeDraft("never");
+    setRecurrenceEndDateDraft("");
+    setRecurrenceOccurrencesDraft("12");
     setEditingTransactionId(null);
     setIsTransactionModalOpen(true);
   }
@@ -169,6 +186,12 @@ export default function TransactionsPage() {
     setTransactionTypeDraft(transaction.type);
     setTransactionDescriptionDraft(transaction.description);
     setTransactionDateDraft(transaction.transactionDate);
+    setIsRecurringDraft(false);
+    setRecurrenceFrequencyDraft("monthly");
+    setRecurrenceStartDateDraft(transaction.transactionDate);
+    setRecurrenceEndModeDraft("never");
+    setRecurrenceEndDateDraft("");
+    setRecurrenceOccurrencesDraft("12");
     setEditingTransactionId(transaction.id);
     setIsTransactionModalOpen(true);
   }
@@ -434,6 +457,96 @@ export default function TransactionsPage() {
                   required
                 />
               </label>
+
+              <fieldset className="recurrence-fieldset">
+                <label className="recurrence-toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={isRecurringDraft}
+                    onChange={(event) => {
+                      const nextValue = event.target.checked;
+                      setIsRecurringDraft(nextValue);
+
+                      if (nextValue && !recurrenceStartDateDraft) {
+                        setRecurrenceStartDateDraft(transactionDateDraft);
+                      }
+                    }}
+                    disabled={isSavingTransaction || isExtractingReceipt || !canUseRecurringTransactions}
+                  />
+                  <span>Make this transaction recurring</span>
+                </label>
+
+                {isRecurringDraft && canUseRecurringTransactions ? (
+                  <div className="recurrence-fields-grid">
+                    <label>
+                      Frequency
+                      <select
+                        value={recurrenceFrequencyDraft}
+                        onChange={(event) => setRecurrenceFrequencyDraft(event.target.value as RecurrenceFrequency)}
+                        disabled={isSavingTransaction || isExtractingReceipt}
+                      >
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      Starts on
+                      <input
+                        type="date"
+                        value={recurrenceStartDateDraft}
+                        onChange={(event) => setRecurrenceStartDateDraft(event.target.value)}
+                        disabled={isSavingTransaction || isExtractingReceipt}
+                      />
+                    </label>
+
+                    <label>
+                      Ends
+                      <select
+                        value={recurrenceEndModeDraft}
+                        onChange={(event) => setRecurrenceEndModeDraft(event.target.value as RecurrenceEndMode)}
+                        disabled={isSavingTransaction || isExtractingReceipt}
+                      >
+                        <option value="never">Never</option>
+                        <option value="onDate">On date</option>
+                        <option value="afterOccurrences">After occurrences</option>
+                      </select>
+                    </label>
+
+                    {recurrenceEndModeDraft === "onDate" ? (
+                      <label>
+                        End date
+                        <input
+                          type="date"
+                          value={recurrenceEndDateDraft}
+                          onChange={(event) => setRecurrenceEndDateDraft(event.target.value)}
+                          disabled={isSavingTransaction || isExtractingReceipt}
+                        />
+                      </label>
+                    ) : null}
+
+                    {recurrenceEndModeDraft === "afterOccurrences" ? (
+                      <label>
+                        Occurrences
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          inputMode="numeric"
+                          value={recurrenceOccurrencesDraft}
+                          onChange={(event) => setRecurrenceOccurrencesDraft(event.target.value)}
+                          disabled={isSavingTransaction || isExtractingReceipt}
+                        />
+                      </label>
+                    ) : null}
+
+                    <p className="recurrence-preview-note">Preview only for now. Automation will be enabled in a future backend update.</p>
+                  </div>
+                ) : null}
+
+                {!canUseRecurringTransactions ? <p className="feedback">Recurring transactions are a subscriber feature.</p> : null}
+              </fieldset>
 
               {transactionError ? <p className="feedback error">{transactionError}</p> : null}
 

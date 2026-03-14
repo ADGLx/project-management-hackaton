@@ -818,6 +818,39 @@ button:disabled {
   gap: 0.45rem;
 }
 
+.recurrence-fieldset {
+  margin: 0;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 0.6rem;
+  background: var(--panel);
+}
+
+.recurrence-toggle-row {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.recurrence-toggle-row input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.recurrence-fields-grid {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.recurrence-preview-note {
+  font-size: 0.85rem;
+  color: var(--muted) !important;
+}
+
 .household-participants-fieldset legend {
   padding: 0 0.35rem;
   font-size: 0.88rem;
