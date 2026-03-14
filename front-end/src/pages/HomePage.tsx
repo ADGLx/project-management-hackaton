@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { getMyMonthlyBudgetHistory } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
 
 function nameFromEmail(email?: string): string {
@@ -16,9 +18,26 @@ function nameFromEmail(email?: string): string {
     .join(" ");
 }
 
+function monthLabelFromMonthStart(monthStart: string): string {
+  const monthPart = monthStart.split("-")[1];
+  const monthIndex = Number(monthPart) - 1;
+  const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  if (!Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+    return monthStart;
+  }
+
+  return monthLabels[monthIndex];
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
-  const { user, logout, profileName, budgetAmountCad } = useAuth();
+  const { user, logout, profileName, budgetAmountCad, saveMonthlyBudget } = useAuth();
+  const [historyBudgetByMonth, setHistoryBudgetByMonth] = useState<Record<string, number>>({});
+  const [isEditingBudget, setIsEditingBudget] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState("");
+  const [budgetError, setBudgetError] = useState("");
+  const [isSavingBudget, setIsSavingBudget] = useState(false);
   const displayName = user?.name || profileName || nameFromEmail(user?.email);
   const formattedBudget =
     typeof budgetAmountCad === "number"
@@ -29,7 +48,7 @@ export default function HomePage() {
         }).format(budgetAmountCad)
       : "Not set";
 
-  const monthlyComparisonData = [
+  const placeholderMonthlySpending = [
     { month: "Oct", budget: 3200, spending: 2980 },
     { month: "Nov", budget: 3200, spending: 3050 },
     { month: "Dec", budget: 3400, spending: 3325 },
@@ -37,6 +56,59 @@ export default function HomePage() {
     { month: "Feb", budget: 3600, spending: 3260 },
     { month: "Mar", budget: 3800, spending: 3440 },
   ];
+
+  async function loadBudgetHistory() {
+    const result = await getMyMonthlyBudgetHistory();
+
+    if (!result.ok) {
+      return;
+    }
+
+    const nextByMonth: Record<string, number> = {};
+
+    for (const point of result.history) {
+      const monthLabel = monthLabelFromMonthStart(point.monthStart);
+      nextByMonth[monthLabel] = point.budgetAmountCad;
+    }
+
+    setHistoryBudgetByMonth(nextByMonth);
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function load() {
+      if (!isMounted) {
+        return;
+      }
+
+      const result = await getMyMonthlyBudgetHistory();
+
+      if (!isMounted || !result.ok) {
+        return;
+      }
+
+      const nextByMonth: Record<string, number> = {};
+
+      for (const point of result.history) {
+        const monthLabel = monthLabelFromMonthStart(point.monthStart);
+        nextByMonth[monthLabel] = point.budgetAmountCad;
+      }
+
+      setHistoryBudgetByMonth(nextByMonth);
+    }
+
+    void load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const monthlyComparisonData = placeholderMonthlySpending.map((point) => ({
+    ...point,
+    budget: historyBudgetByMonth[point.month] ?? point.budget,
+  }));
 
   const placeholderTransactions = [
     { id: "TXN-001", date: "2026-03-02", merchant: "Metro Grocery", category: "Food", amountCad: 126 },
@@ -58,6 +130,42 @@ export default function HomePage() {
     navigate("/login");
   }
 
+  async function onSaveBudget() {
+    setBudgetError("");
+
+    const parsedBudget = Number(budgetDraft);
+
+    if (!Number.isInteger(parsedBudget) || parsedBudget <= 0) {
+      setBudgetError("Please enter a whole number greater than 0.");
+      return;
+    }
+
+    setIsSavingBudget(true);
+    const result = await saveMonthlyBudget(parsedBudget);
+
+    if (!result.ok) {
+      setBudgetError(result.message);
+      setIsSavingBudget(false);
+      return;
+    }
+
+    await loadBudgetHistory();
+    setIsSavingBudget(false);
+    setIsEditingBudget(false);
+    setBudgetError("");
+  }
+
+  function startEditingBudget() {
+    setBudgetDraft(typeof budgetAmountCad === "number" ? String(budgetAmountCad) : "");
+    setBudgetError("");
+    setIsEditingBudget(true);
+  }
+
+  function cancelEditingBudget() {
+    setBudgetError("");
+    setIsEditingBudget(false);
+  }
+
   return (
     <main className="home-shell">
       <section className="home-hero dashboard-header">
@@ -75,17 +183,52 @@ export default function HomePage() {
       <section className="dashboard-card budget-card">
         <p className="eyebrow">Monthly Budget</p>
         <p className="budget-value">{formattedBudget}</p>
-        <p>Placeholder: this is your configured monthly limit in CAD.</p>
+
+        {isEditingBudget ? (
+          <div className="budget-edit-form">
+            <div className="budget-edit-row">
+              <span>CAD $</span>
+              <input
+                className="budget-input"
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                value={budgetDraft}
+                onChange={(event) => setBudgetDraft(event.target.value)}
+                disabled={isSavingBudget}
+              />
+            </div>
+
+            <div className="budget-actions">
+              <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
+                {isSavingBudget ? "Saving..." : "Save"}
+              </button>
+              <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
+                Cancel
+              </button>
+            </div>
+
+            {budgetError ? <p className="feedback error">{budgetError}</p> : null}
+          </div>
+        ) : (
+          <>
+            <p>Placeholder: this is your configured monthly limit in CAD.</p>
+            <button className="secondary-button" type="button" onClick={startEditingBudget}>
+              Edit budget
+            </button>
+          </>
+        )}
       </section>
 
       <section className="dashboard-card chart-card">
         <h2>Budget vs Spending (Previous Months)</h2>
         <div className="chart-wrap">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={monthlyComparisonData} margin={{ top: 12, right: 18, left: 0, bottom: 8 }}>
+            <ComposedChart data={monthlyComparisonData} margin={{ top: 12, right: 18, left: 10, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.32} />
               <XAxis dataKey="month" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} width={48} tickFormatter={(value) => `$${value}`} />
+              <YAxis tickLine={false} axisLine={false} width={56} tickFormatter={(value) => `$${value}`} />
               <Tooltip formatter={(value) => `CAD $${value}`} />
               <Legend />
               <Bar dataKey="spending" name="Spending" fill="#0e7a74" radius={[6, 6, 0, 0]} />

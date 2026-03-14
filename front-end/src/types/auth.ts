@@ -27,8 +27,19 @@ export interface BudgetSaveSuccess {
   budgetAmountCad: number;
 }
 
+export interface BudgetHistoryPoint {
+  monthStart: string;
+  budgetAmountCad: number;
+}
+
+export interface BudgetHistorySuccess {
+  ok: true;
+  history: BudgetHistoryPoint[];
+}
+
 export type BudgetFetchResult = BudgetFetchSuccess | AuthFailure;
 export type BudgetSaveResult = BudgetSaveSuccess | AuthFailure;
+export type BudgetHistoryResult = BudgetHistorySuccess | AuthFailure;
 
 export interface AuthContextValue {
   user: User | null;
@@ -52,5 +63,10 @@ export interface AuthResponseBody {
 
 export interface BudgetResponseBody {
   budgetAmountCad?: number | null;
+  message?: string;
+}
+
+export interface BudgetHistoryResponseBody {
+  history?: BudgetHistoryPoint[];
   message?: string;
 }

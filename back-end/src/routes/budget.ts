@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getUserMonthlyBudget, upsertUserMonthlyBudget } from "../db/budgets.js";
+import { getUserMonthlyBudget, getUserMonthlyBudgetHistory, upsertUserMonthlyBudget } from "../db/budgets.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
@@ -53,6 +53,20 @@ router.post("/me", requireAuth, async (req, res) => {
     res.json({ budgetAmountCad: savedBudgetAmountCad });
   } catch {
     res.status(500).json({ message: "Failed to save monthly budget" });
+  }
+});
+
+router.get("/history", requireAuth, async (req, res) => {
+  if (!req.auth) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  try {
+    const history = await getUserMonthlyBudgetHistory(String(req.auth.userId));
+    res.json({ history });
+  } catch {
+    res.status(500).json({ message: "Failed to load budget history" });
   }
 });
 

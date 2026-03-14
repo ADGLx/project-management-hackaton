@@ -1,4 +1,13 @@
-import type { AuthResponseBody, AuthResult, BudgetFetchResult, BudgetResponseBody, BudgetSaveResult, User } from "../types/auth";
+import type {
+  AuthResponseBody,
+  AuthResult,
+  BudgetFetchResult,
+  BudgetHistoryResponseBody,
+  BudgetHistoryResult,
+  BudgetResponseBody,
+  BudgetSaveResult,
+  User,
+} from "../types/auth";
 
 export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -147,6 +156,41 @@ export async function saveMyMonthlyBudget(budgetAmountCad: number): Promise<Budg
     return {
       ok: true,
       budgetAmountCad: data.budgetAmountCad,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function getMyMonthlyBudgetHistory(): Promise<BudgetHistoryResult> {
+  try {
+    const response = await fetch(`${API_URL}/budget/history`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await readJson<BudgetHistoryResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to load budget history",
+      };
+    }
+
+    if (!Array.isArray(data?.history)) {
+      return {
+        ok: false,
+        message: "Server returned an invalid budget history response",
+      };
+    }
+
+    return {
+      ok: true,
+      history: data.history,
     };
   } catch (error) {
     return {

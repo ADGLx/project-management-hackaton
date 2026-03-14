@@ -58,12 +58,17 @@ Note: Postgres host port is currently not exposed in `docker-compose.yml`. If yo
 
 - `GET /budget/me`
   - requires auth cookie
+  - returns current month budget
   - success: `200` + `{ "budgetAmountCad": number | null }`
 - `POST /budget/me`
   - requires auth cookie
   - body: `{ "budgetAmountCad": 3000 }`
+  - upserts budget for current month (`one budget per month`)
   - validations: integer, greater than 0
   - success: `200` + `{ "budgetAmountCad": number }`
+- `GET /budget/history`
+  - requires auth cookie
+  - success: `200` + `{ "history": [{ "monthStart": "YYYY-MM-01", "budgetAmountCad": number }] }`
 
 ## Environment variables
 
