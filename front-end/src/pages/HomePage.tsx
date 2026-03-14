@@ -65,6 +65,13 @@ function monthSortKey(monthStart: string): number {
   return year * 100 + month;
 }
 
+function currentMonthStartDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}-01`;
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, profileName, budgetAmountCad, saveMonthlyBudget } = useAuth();
@@ -141,6 +148,26 @@ export default function HomePage() {
 
     return fromServer;
   }, [editingTransactionId, transactionTypeDraft, transactionTypes]);
+
+  const currentMonthStart = useMemo(() => currentMonthStartDateString(), []);
+
+  const spendingByMonth = useMemo(() => {
+    const byMonth = new Map<string, number>();
+
+    for (const point of spendingHistory) {
+      byMonth.set(point.monthStart, point.spendingAmountCad);
+    }
+
+    return byMonth;
+  }, [spendingHistory]);
+
+  const currentMonthSpending = spendingByMonth.get(currentMonthStart) ?? 0;
+
+  const remainingBudgetCad = typeof budgetAmountCad === "number" ? budgetAmountCad - currentMonthSpending : null;
+  const budgetUsagePercent =
+    typeof budgetAmountCad === "number" && budgetAmountCad > 0 ? (currentMonthSpending / budgetAmountCad) * 100 : null;
+  const currentStandingLabel =
+    remainingBudgetCad === null ? "Budget not set" : remainingBudgetCad >= 0 ? "On track" : "Over budget";
 
   async function loadDashboardData() {
     setDataError("");
@@ -396,44 +423,72 @@ export default function HomePage() {
 
       <section className="dashboard-card overview-card">
         <div className="overview-section budget-card">
-          <p className="eyebrow">Monthly Budget</p>
-          <p className="budget-value">{formattedBudget}</p>
+          <div className="budget-stats-layout">
+            <div className="budget-main-tile">
+              <p className="eyebrow">Monthly Budget</p>
 
-          {isEditingBudget ? (
-            <div className="budget-edit-form">
-              <div className="budget-edit-row">
-                <span>CAD $</span>
-                <input
-                  className="budget-input"
-                  type="number"
-                  min={1}
-                  step={1}
-                  inputMode="numeric"
-                  value={budgetDraft}
-                  onChange={(event) => setBudgetDraft(event.target.value)}
-                  disabled={isSavingBudget}
-                />
-              </div>
+              {isEditingBudget ? (
+                <div className="budget-edit-form">
+                  <div className="budget-edit-row">
+                    <span>CAD $</span>
+                    <input
+                      className="budget-input"
+                      type="number"
+                      min={1}
+                      step={1}
+                      inputMode="numeric"
+                      value={budgetDraft}
+                      onChange={(event) => setBudgetDraft(event.target.value)}
+                      disabled={isSavingBudget}
+                    />
+                  </div>
 
-              <div className="budget-actions">
-                <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
-                  {isSavingBudget ? "Saving..." : "Save"}
-                </button>
-                <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
-                  Cancel
-                </button>
-              </div>
+                  <div className="budget-actions">
+                    <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
+                      {isSavingBudget ? "Saving..." : "Save"}
+                    </button>
+                    <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
+                      Cancel
+                    </button>
+                  </div>
 
-              {budgetError ? <p className="feedback error">{budgetError}</p> : null}
+                  {budgetError ? <p className="feedback error">{budgetError}</p> : null}
+                </div>
+              ) : (
+                <div className="budget-value-row">
+                  <p className="budget-value">{formattedBudget}</p>
+                  <button className="budget-edit-icon" type="button" onClick={startEditingBudget} aria-label="Edit monthly budget">
+                    ✎
+                  </button>
+                </div>
+              )}
             </div>
-          ) : (
-            <>
-              <p>This is your configured monthly limit in CAD.</p>
-              <button className="secondary-button" type="button" onClick={startEditingBudget}>
-                Edit budget
-              </button>
-            </>
-          )}
+
+            <div className="current-month-stats">
+              <p className="current-month-title">Current Month</p>
+              <div className="current-month-grid">
+                <div className="current-month-item">
+                  <p className="current-month-label">Standing</p>
+                  <p className="current-month-value">{currentStandingLabel}</p>
+                </div>
+                <div className="current-month-item">
+                  <p className="current-month-label">Used (%)</p>
+                  <p className="current-month-value">{budgetUsagePercent === null ? "--" : `${budgetUsagePercent.toFixed(1)}%`}</p>
+                </div>
+                <div className="current-month-item">
+                  <p className="current-month-label">Spent</p>
+                  <p className="current-month-value">{formattedCurrency.format(currentMonthSpending)}</p>
+                </div>
+                <div className="current-month-item">
+                  <p className="current-month-label">Remaining</p>
+                  <p className="current-month-value">
+                    {remainingBudgetCad === null ? "--" : formattedCurrency.format(Math.abs(remainingBudgetCad))}
+                    {remainingBudgetCad !== null && remainingBudgetCad < 0 ? " over" : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="overview-section chart-card">
@@ -470,33 +525,30 @@ export default function HomePage() {
             <div className="transactions-list" role="list">
               {transactions.map((transaction) => (
                 <article className="transaction-row" role="listitem" key={transaction.id}>
-                  <div>
-                    <p className="transaction-merchant">{transaction.type}</p>
-                    <p className="transaction-meta">{transaction.description}</p>
-                  </div>
-
-                  <div className="transaction-right">
-                    <p>{formatDateForDisplay(transaction.transactionDate)}</p>
-                    <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
-                    <div className="transaction-actions">
-                      <button
-                        className="transaction-action secondary-button"
-                        type="button"
-                        onClick={() => openEditTransactionModal(transaction)}
-                        disabled={isSavingTransaction || isDeletingTransactionId === transaction.id}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="transaction-action secondary-button"
-                        type="button"
-                        onClick={() => void onDeleteTransaction(transaction.id)}
-                        disabled={isDeletingTransactionId === transaction.id || isSavingTransaction}
-                      >
-                        {isDeletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  </div>
+                  <p className="transaction-merchant">{transaction.type}</p>
+                  <p className="transaction-date">{formatDateForDisplay(transaction.transactionDate)}</p>
+                  <p className="transaction-meta">{transaction.description}</p>
+                  <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
+                  <button
+                    className="transaction-action transaction-action-edit secondary-button"
+                    type="button"
+                    onClick={() => openEditTransactionModal(transaction)}
+                    disabled={isSavingTransaction || isDeletingTransactionId === transaction.id}
+                    aria-label={`Edit ${transaction.description}`}
+                    title="Edit transaction"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className="transaction-action transaction-action-delete secondary-button"
+                    type="button"
+                    onClick={() => void onDeleteTransaction(transaction.id)}
+                    disabled={isDeletingTransactionId === transaction.id || isSavingTransaction}
+                    aria-label={`Delete ${transaction.description}`}
+                    title="Delete transaction"
+                  >
+                    {isDeletingTransactionId === transaction.id ? "…" : "🗑"}
+                  </button>
                 </article>
               ))}
             </div>
