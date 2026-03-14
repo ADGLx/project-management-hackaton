@@ -406,6 +406,19 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.transaction-actions {
+  margin-top: 0.35rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.transaction-action {
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
 .transaction-amount {
   color: var(--text) !important;
   font-weight: 700;

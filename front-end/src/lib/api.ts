@@ -8,10 +8,14 @@ import type {
   BudgetSaveResult,
   TransactionCreateResponseBody,
   TransactionCreateResult,
+  TransactionDeleteResponseBody,
+  TransactionDeleteResult,
   TransactionHistoryResponseBody,
   TransactionHistoryResult,
   TransactionListResponseBody,
   TransactionListResult,
+  TransactionUpdateResponseBody,
+  TransactionUpdateResult,
   User,
 } from "../types/auth";
 
@@ -206,13 +210,13 @@ export async function getMyMonthlyBudgetHistory(): Promise<BudgetHistoryResult> 
   }
 }
 
-interface CreateTransactionPayload {
+export interface UpsertTransactionPayload {
   amountCad: number;
   type: string;
   transactionDate: string;
 }
 
-export async function createMyTransaction(payload: CreateTransactionPayload): Promise<TransactionCreateResult> {
+export async function createMyTransaction(payload: UpsertTransactionPayload): Promise<TransactionCreateResult> {
   try {
     const response = await fetch(`${API_URL}/transactions/me`, {
       method: "POST",
@@ -241,6 +245,75 @@ export async function createMyTransaction(payload: CreateTransactionPayload): Pr
       ok: true,
       transaction: data.transaction,
     };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function updateMyTransaction(transactionId: string, payload: UpsertTransactionPayload): Promise<TransactionUpdateResult> {
+  try {
+    const response = await fetch(`${API_URL}/transactions/me/${transactionId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await readJson<TransactionUpdateResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to update transaction",
+      };
+    }
+
+    if (!data?.transaction) {
+      return {
+        ok: false,
+        message: "Server returned an invalid transaction response",
+      };
+    }
+
+    return {
+      ok: true,
+      transaction: data.transaction,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function deleteMyTransaction(transactionId: string): Promise<TransactionDeleteResult> {
+  try {
+    const response = await fetch(`${API_URL}/transactions/me/${transactionId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const data = await readJson<TransactionDeleteResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to delete transaction",
+      };
+    }
+
+    if (!data?.ok) {
+      return {
+        ok: false,
+        message: "Server returned an invalid delete response",
+      };
+    }
+
+    return { ok: true };
   } catch (error) {
     return {
       ok: false,

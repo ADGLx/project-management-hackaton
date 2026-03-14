@@ -64,12 +64,23 @@ export interface TransactionHistorySuccess {
   history: MonthlySpendingPoint[];
 }
 
+export interface TransactionUpdateSuccess {
+  ok: true;
+  transaction: UserTransaction;
+}
+
+export interface TransactionDeleteSuccess {
+  ok: true;
+}
+
 export type BudgetFetchResult = BudgetFetchSuccess | AuthFailure;
 export type BudgetSaveResult = BudgetSaveSuccess | AuthFailure;
 export type BudgetHistoryResult = BudgetHistorySuccess | AuthFailure;
 export type TransactionListResult = TransactionListSuccess | AuthFailure;
 export type TransactionCreateResult = TransactionCreateSuccess | AuthFailure;
 export type TransactionHistoryResult = TransactionHistorySuccess | AuthFailure;
+export type TransactionUpdateResult = TransactionUpdateSuccess | AuthFailure;
+export type TransactionDeleteResult = TransactionDeleteSuccess | AuthFailure;
 
 export interface AuthContextValue {
   user: User | null;
@@ -113,5 +124,15 @@ export interface TransactionCreateResponseBody {
 
 export interface TransactionHistoryResponseBody {
   history?: MonthlySpendingPoint[];
+  message?: string;
+}
+
+export interface TransactionUpdateResponseBody {
+  transaction?: UserTransaction;
+  message?: string;
+}
+
+export interface TransactionDeleteResponseBody {
+  ok?: boolean;
   message?: string;
 }

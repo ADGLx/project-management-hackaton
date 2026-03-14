@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { createUserTransaction, getUserMonthlySpendingHistory, getUserTransactions } from "../db/transactions.js";
+import {
+  createUserTransaction,
+  deleteUserTransaction,
+  getUserMonthlySpendingHistory,
+  getUserTransactions,
+  updateUserTransaction,
+} from "../db/transactions.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
@@ -57,6 +63,19 @@ function parseTransactionDate(value: unknown): string | null {
   return value;
 }
 
+function parseTransactionId(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 router.post("/me", requireAuth, async (req, res) => {
   if (!req.auth) {
     res.status(401).json({ message: "Authentication required" });
@@ -102,6 +121,79 @@ router.get("/me", requireAuth, async (req, res) => {
     res.json({ transactions });
   } catch {
     res.status(500).json({ message: "Failed to load transactions" });
+  }
+});
+
+router.put("/me/:transactionId", requireAuth, async (req, res) => {
+  if (!req.auth) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const transactionId = parseTransactionId(req.params.transactionId);
+  const body = (req.body ?? {}) as SaveTransactionBody;
+  const amountCad = parseAmount(body.amountCad);
+  const type = parseType(body.type);
+  const transactionDate = parseTransactionDate(body.transactionDate);
+
+  if (!transactionId) {
+    res.status(400).json({ message: "Transaction id is required" });
+    return;
+  }
+
+  if (amountCad === null) {
+    res.status(400).json({ message: "Amount must be a positive number" });
+    return;
+  }
+
+  if (!type) {
+    res.status(400).json({ message: "Type is required" });
+    return;
+  }
+
+  if (!transactionDate) {
+    res.status(400).json({ message: "Transaction date must be in YYYY-MM-DD format" });
+    return;
+  }
+
+  try {
+    const transaction = await updateUserTransaction(String(req.auth.userId), transactionId, amountCad, type, transactionDate);
+
+    if (!transaction) {
+      res.status(404).json({ message: "Transaction not found" });
+      return;
+    }
+
+    res.json({ transaction });
+  } catch {
+    res.status(500).json({ message: "Failed to update transaction" });
+  }
+});
+
+router.delete("/me/:transactionId", requireAuth, async (req, res) => {
+  if (!req.auth) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  const transactionId = parseTransactionId(req.params.transactionId);
+
+  if (!transactionId) {
+    res.status(400).json({ message: "Transaction id is required" });
+    return;
+  }
+
+  try {
+    const deleted = await deleteUserTransaction(String(req.auth.userId), transactionId);
+
+    if (!deleted) {
+      res.status(404).json({ message: "Transaction not found" });
+      return;
+    }
+
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ message: "Failed to delete transaction" });
   }
 });
 

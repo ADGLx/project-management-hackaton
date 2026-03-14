@@ -24,6 +24,15 @@ export interface MonthlySpendingPoint {
   spendingAmountCad: number;
 }
 
+function mapTransactionRow(row: TransactionRow): UserTransaction {
+  return {
+    id: row.id,
+    amountCad: row.amount_cad,
+    type: row.type,
+    transactionDate: row.transaction_date,
+  };
+}
+
 export async function createUserTransaction(userId: string, amountCad: number, type: string, transactionDate: string): Promise<UserTransaction> {
   const query = `
     INSERT INTO transactions (user_id, amount_cad, type, transaction_date)
@@ -32,14 +41,7 @@ export async function createUserTransaction(userId: string, amountCad: number, t
   `;
 
   const result = await pool.query<TransactionRow>(query, [userId, amountCad, type, transactionDate]);
-  const row = result.rows[0];
-
-  return {
-    id: row.id,
-    amountCad: row.amount_cad,
-    type: row.type,
-    transactionDate: row.transaction_date,
-  };
+  return mapTransactionRow(result.rows[0]);
 }
 
 export async function getUserTransactions(userId: string, limit = 100): Promise<UserTransaction[]> {
@@ -53,12 +55,45 @@ export async function getUserTransactions(userId: string, limit = 100): Promise<
 
   const result = await pool.query<TransactionRow>(query, [userId, limit]);
 
-  return result.rows.map((row) => ({
-    id: row.id,
-    amountCad: row.amount_cad,
-    type: row.type,
-    transactionDate: row.transaction_date,
-  }));
+  return result.rows.map(mapTransactionRow);
+}
+
+export async function updateUserTransaction(
+  userId: string,
+  transactionId: string,
+  amountCad: number,
+  type: string,
+  transactionDate: string,
+): Promise<UserTransaction | null> {
+  const query = `
+    UPDATE transactions
+    SET amount_cad = $3,
+        type = $4,
+        transaction_date = $5
+    WHERE user_id = $1
+      AND id = $2
+    RETURNING id, amount_cad, type, transaction_date::text
+  `;
+
+  const result = await pool.query<TransactionRow>(query, [userId, transactionId, amountCad, type, transactionDate]);
+  const row = result.rows[0];
+
+  if (!row) {
+    return null;
+  }
+
+  return mapTransactionRow(row);
+}
+
+export async function deleteUserTransaction(userId: string, transactionId: string): Promise<boolean> {
+  const query = `
+    DELETE FROM transactions
+    WHERE user_id = $1
+      AND id = $2
+  `;
+
+  const result = await pool.query(query, [userId, transactionId]);
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function getUserMonthlySpendingHistory(userId: string, limit = 12): Promise<MonthlySpendingPoint[]> {

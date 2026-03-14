@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { createMyTransaction, getMyMonthlyBudgetHistory, getMyTransactionHistory, getMyTransactions } from "../lib/api";
+import {
+  createMyTransaction,
+  deleteMyTransaction,
+  getMyMonthlyBudgetHistory,
+  getMyTransactionHistory,
+  getMyTransactions,
+  updateMyTransaction,
+} from "../lib/api";
 import { useAuth } from "../state/AuthContext";
 import type { BudgetHistoryPoint, MonthlySpendingPoint, UserTransaction } from "../types/auth";
 
@@ -70,6 +77,8 @@ export default function HomePage() {
   const [isSavingBudget, setIsSavingBudget] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = useState(false);
+  const [isDeletingTransactionId, setIsDeletingTransactionId] = useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [transactionError, setTransactionError] = useState("");
   const [transactionAmountDraft, setTransactionAmountDraft] = useState("");
   const [transactionTypeDraft, setTransactionTypeDraft] = useState("");
@@ -196,6 +205,7 @@ export default function HomePage() {
 
         setIsTransactionModalOpen(false);
         setTransactionError("");
+        setEditingTransactionId(null);
       }
     }
 
@@ -253,6 +263,16 @@ export default function HomePage() {
     setTransactionAmountDraft("");
     setTransactionTypeDraft("");
     setTransactionDateDraft(todayAsDateInputValue());
+    setEditingTransactionId(null);
+    setIsTransactionModalOpen(true);
+  }
+
+  function openEditTransactionModal(transaction: UserTransaction) {
+    setTransactionError("");
+    setTransactionAmountDraft(String(transaction.amountCad));
+    setTransactionTypeDraft(transaction.type);
+    setTransactionDateDraft(transaction.transactionDate);
+    setEditingTransactionId(transaction.id);
     setIsTransactionModalOpen(true);
   }
 
@@ -263,6 +283,7 @@ export default function HomePage() {
 
     setIsTransactionModalOpen(false);
     setTransactionError("");
+    setEditingTransactionId(null);
   }
 
   async function onSaveTransaction() {
@@ -285,11 +306,12 @@ export default function HomePage() {
     }
 
     setIsSavingTransaction(true);
-    const result = await createMyTransaction({
+    const payload = {
       amountCad,
       type: transactionTypeDraft.trim(),
       transactionDate: transactionDateDraft,
-    });
+    };
+    const result = editingTransactionId ? await updateMyTransaction(editingTransactionId, payload) : await createMyTransaction(payload);
 
     if (!result.ok) {
       setTransactionError(result.message);
@@ -300,6 +322,22 @@ export default function HomePage() {
     await loadDashboardData();
     setIsSavingTransaction(false);
     setIsTransactionModalOpen(false);
+    setEditingTransactionId(null);
+  }
+
+  async function onDeleteTransaction(transactionId: string) {
+    setTransactionError("");
+    setIsDeletingTransactionId(transactionId);
+    const result = await deleteMyTransaction(transactionId);
+
+    if (!result.ok) {
+      setTransactionError(result.message);
+      setIsDeletingTransactionId(null);
+      return;
+    }
+
+    await loadDashboardData();
+    setIsDeletingTransactionId(null);
   }
 
   return (
@@ -399,6 +437,24 @@ export default function HomePage() {
                 <div className="transaction-right">
                   <p>{formatDateForDisplay(transaction.transactionDate)}</p>
                   <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
+                  <div className="transaction-actions">
+                    <button
+                      className="transaction-action secondary-button"
+                      type="button"
+                      onClick={() => openEditTransactionModal(transaction)}
+                      disabled={isSavingTransaction || isDeletingTransactionId === transaction.id}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="transaction-action secondary-button"
+                      type="button"
+                      onClick={() => void onDeleteTransaction(transaction.id)}
+                      disabled={isDeletingTransactionId === transaction.id || isSavingTransaction}
+                    >
+                      {isDeletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
@@ -409,6 +465,7 @@ export default function HomePage() {
       </section>
 
       {dataError ? <p className="feedback error">{dataError}</p> : null}
+      {transactionError && !isTransactionModalOpen ? <p className="feedback error">{transactionError}</p> : null}
 
       <button className="fab-button" type="button" onClick={openTransactionModal} aria-label="Add transaction">
         +
@@ -423,7 +480,7 @@ export default function HomePage() {
             aria-labelledby="transaction-modal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="transaction-modal-title">Add Transaction</h2>
+            <h2 id="transaction-modal-title">{editingTransactionId ? "Edit Transaction" : "Add Transaction"}</h2>
 
             <form
               className="transaction-form"
@@ -473,7 +530,7 @@ export default function HomePage() {
 
               <div className="modal-actions">
                 <button type="submit" disabled={isSavingTransaction}>
-                  {isSavingTransaction ? "Saving..." : "Save Transaction"}
+                  {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
                 </button>
                 <button className="secondary-button" type="button" onClick={closeTransactionModal} disabled={isSavingTransaction}>
                   Cancel
