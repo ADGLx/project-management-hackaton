@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
@@ -7,6 +8,7 @@ import {
   deleteMyTransaction,
   getMyTransactionTypes,
   getMyTransactions,
+  scanTransactionReceipt,
   updateMyTransaction,
 } from "../lib/api";
 import type { TransactionType, UserTransaction } from "../types/auth";
@@ -39,6 +41,9 @@ export default function TransactionsPage() {
   const [transactionTypeDraft, setTransactionTypeDraft] = useState("");
   const [transactionDescriptionDraft, setTransactionDescriptionDraft] = useState("");
   const [transactionDateDraft, setTransactionDateDraft] = useState(todayAsDateInputValue);
+  const [isExtractingReceipt, setIsExtractingReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState("");
+  const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
     () =>
@@ -125,7 +130,7 @@ export default function TransactionsPage() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        if (isSavingTransaction) {
+        if (isSavingTransaction || isExtractingReceipt) {
           return;
         }
 
@@ -141,10 +146,11 @@ export default function TransactionsPage() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isTransactionModalOpen, isSavingTransaction]);
+  }, [isExtractingReceipt, isTransactionModalOpen, isSavingTransaction]);
 
   function openTransactionModal() {
     setTransactionError("");
+    setReceiptError("");
     setTransactionAmountDraft("");
     setTransactionTypeDraft(transactionTypes[0]?.name ?? "");
     setTransactionDescriptionDraft("");
@@ -155,6 +161,7 @@ export default function TransactionsPage() {
 
   function openEditTransactionModal(transaction: UserTransaction) {
     setTransactionError("");
+    setReceiptError("");
     setTransactionAmountDraft(String(transaction.amountCad));
     setTransactionTypeDraft(transaction.type);
     setTransactionDescriptionDraft(transaction.description);
@@ -164,13 +171,45 @@ export default function TransactionsPage() {
   }
 
   function closeTransactionModal() {
-    if (isSavingTransaction) {
+    if (isSavingTransaction || isExtractingReceipt) {
       return;
     }
 
     setIsTransactionModalOpen(false);
     setTransactionError("");
+    setReceiptError("");
     setEditingTransactionId(null);
+  }
+
+  function onScanReceiptClick() {
+    setReceiptError("");
+    receiptInputRef.current?.click();
+  }
+
+  async function onReceiptFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setReceiptError("");
+    setTransactionError("");
+    setIsExtractingReceipt(true);
+
+    const result = await scanTransactionReceipt(file);
+
+    if (!result.ok) {
+      setReceiptError(result.message);
+      setIsExtractingReceipt(false);
+      return;
+    }
+
+    setTransactionAmountDraft(result.suggestion.amountCad.toFixed(2));
+    setTransactionTypeDraft(result.suggestion.type);
+    setTransactionDescriptionDraft(result.suggestion.description);
+    setIsExtractingReceipt(false);
   }
 
   async function onSaveTransaction() {
@@ -293,7 +332,31 @@ export default function TransactionsPage() {
             aria-labelledby="transaction-modal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="transaction-modal-title">{editingTransactionId ? "Edit Transaction" : "Add Transaction"}</h2>
+            <div className="modal-title-row">
+              <h2 id="transaction-modal-title">{editingTransactionId ? "Edit Transaction" : "Add Transaction"}</h2>
+              {!editingTransactionId ? (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={onScanReceiptClick}
+                  disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
+                >
+                  {isExtractingReceipt ? "Scanning..." : "Scan Receipt"}
+                </button>
+              ) : null}
+            </div>
+
+            <input
+              ref={receiptInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="receipt-file-input"
+              onChange={(event) => void onReceiptFileChange(event)}
+              disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
+            />
+
+            {receiptError ? <p className="feedback error">{receiptError}</p> : null}
 
             <form
               className="transaction-form"
@@ -311,7 +374,7 @@ export default function TransactionsPage() {
                   inputMode="decimal"
                   value={transactionAmountDraft}
                   onChange={(event) => setTransactionAmountDraft(event.target.value)}
-                  disabled={isSavingTransaction}
+                  disabled={isSavingTransaction || isExtractingReceipt}
                   required
                 />
               </label>
@@ -321,7 +384,7 @@ export default function TransactionsPage() {
                 <select
                   value={transactionTypeDraft}
                   onChange={(event) => setTransactionTypeDraft(event.target.value)}
-                  disabled={isSavingTransaction || modalTypeOptions.length === 0}
+                  disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
                   required
                 >
                   {modalTypeOptions.length === 0 ? <option value="">No types available</option> : null}
@@ -343,7 +406,7 @@ export default function TransactionsPage() {
                   type="text"
                   value={transactionDescriptionDraft}
                   onChange={(event) => setTransactionDescriptionDraft(event.target.value)}
-                  disabled={isSavingTransaction}
+                  disabled={isSavingTransaction || isExtractingReceipt}
                   placeholder="Short note about this transaction"
                   required
                 />
@@ -355,7 +418,7 @@ export default function TransactionsPage() {
                   type="date"
                   value={transactionDateDraft}
                   onChange={(event) => setTransactionDateDraft(event.target.value)}
-                  disabled={isSavingTransaction}
+                  disabled={isSavingTransaction || isExtractingReceipt}
                   required
                 />
               </label>
@@ -363,10 +426,15 @@ export default function TransactionsPage() {
               {transactionError ? <p className="feedback error">{transactionError}</p> : null}
 
               <div className="modal-actions">
-                <button type="submit" disabled={isSavingTransaction || modalTypeOptions.length === 0}>
+                <button type="submit" disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}>
                   {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
                 </button>
-                <button className="secondary-button" type="button" onClick={closeTransactionModal} disabled={isSavingTransaction}>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={closeTransactionModal}
+                  disabled={isSavingTransaction || isExtractingReceipt}
+                >
                   Cancel
                 </button>
               </div>

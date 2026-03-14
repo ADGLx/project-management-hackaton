@@ -93,6 +93,17 @@ export interface TransactionTypeDeleteSuccess {
   ok: true;
 }
 
+export interface ReceiptScanSuggestion {
+  amountCad: number;
+  type: string;
+  description: string;
+}
+
+export interface ReceiptScanSuccess {
+  ok: true;
+  suggestion: ReceiptScanSuggestion;
+}
+
 export interface HouseholdMember {
   userId: string;
   name: string;
@@ -189,6 +200,7 @@ export type TransactionDeleteResult = TransactionDeleteSuccess | AuthFailure;
 export type TransactionTypesFetchResult = TransactionTypesFetchSuccess | AuthFailure;
 export type TransactionTypeCreateResult = TransactionTypeCreateSuccess | AuthFailure;
 export type TransactionTypeDeleteResult = TransactionTypeDeleteSuccess | AuthFailure;
+export type ReceiptScanResult = ReceiptScanSuccess | AuthFailure;
 export type HouseholdFetchResult = HouseholdFetchSuccess | AuthFailure;
 export type HouseholdCreateResult = HouseholdCreateSuccess | AuthFailure;
 export type HouseholdInviteResult = HouseholdInviteSuccess | AuthFailure;
@@ -266,6 +278,11 @@ export interface TransactionTypeCreateResponseBody {
 
 export interface TransactionTypeDeleteResponseBody {
   ok?: boolean;
+  message?: string;
+}
+
+export interface ReceiptScanResponseBody {
+  suggestion?: ReceiptScanSuggestion;
   message?: string;
 }
 

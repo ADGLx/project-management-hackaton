@@ -10,6 +10,8 @@ function parseNumber(value: string | undefined, fallback: number): number {
 export const env = {
   port: parseNumber(process.env.PORT, 3000),
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173",
+  openaiApiKey: process.env.OPENAI_API_KEY,
+  openaiVisionModel: process.env.OPENAI_VISION_MODEL ?? "gpt-4.1-mini",
   jwtSecret: process.env.JWT_SECRET ?? "change-me-in-production",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1d",
   cookieSecure: process.env.COOKIE_SECURE === "true",

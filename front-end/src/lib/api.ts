@@ -21,6 +21,8 @@ import type {
   HouseholdSettlementFetchResult,
   HouseholdSettlementResponseBody,
   HouseholdTransactionUpdateResult,
+  ReceiptScanResponseBody,
+  ReceiptScanResult,
   TransactionCreateResponseBody,
   TransactionCreateResult,
   TransactionDeleteResponseBody,
@@ -274,6 +276,45 @@ export async function createMyTransaction(payload: UpsertTransactionPayload): Pr
     return {
       ok: true,
       transaction: data.transaction,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function scanTransactionReceipt(file: File): Promise<ReceiptScanResult> {
+  try {
+    const formData = new FormData();
+    formData.append("receiptImage", file);
+
+    const response = await fetch(`${API_URL}/transactions/me/ocr`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const data = await readJson<ReceiptScanResponseBody>(response);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        message: data?.message ?? "Failed to scan receipt",
+      };
+    }
+
+    if (!data?.suggestion || typeof data.suggestion.amountCad !== "number" || !data.suggestion.type || !data.suggestion.description) {
+      return {
+        ok: false,
+        message: "Server returned an invalid receipt scan response",
+      };
+    }
+
+    return {
+      ok: true,
+      suggestion: data.suggestion,
     };
   } catch (error) {
     return {

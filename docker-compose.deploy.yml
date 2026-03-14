@@ -24,10 +24,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # env_file:
+    #   - ./.env
     environment:
       NODE_ENV: production
       PORT: 3000
       FRONTEND_ORIGIN: ${DEPLOY_FRONTEND_ORIGIN:-http://localhost}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_VISION_MODEL: ${OPENAI_VISION_MODEL:-gpt-4.1-mini}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}

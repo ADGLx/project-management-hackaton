@@ -726,6 +726,21 @@ button:disabled {
   gap: 0.8rem;
 }
 
+.modal-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.modal-title-row h2 {
+  margin: 0;
+}
+
+.receipt-file-input {
+  display: none;
+}
+
 .transaction-form {
   display: grid;
   gap: 0.75rem;
