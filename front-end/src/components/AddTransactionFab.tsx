@@ -45,16 +45,34 @@ export default function AddTransactionFab() {
 
   function openPersonalTransactionModal() {
     setIsMenuOpen(false);
+
+    if (location.pathname === "/transactions") {
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.set("new", "1");
+      navigate(`/transactions?${nextParams.toString()}`);
+      return;
+    }
+
     navigate("/transactions?new=1");
   }
 
   function openSharedTransactionModal() {
     setIsMenuOpen(false);
+
+    if (location.pathname === "/household") {
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.set("new", "1");
+      navigate(`/household?${nextParams.toString()}`);
+      return;
+    }
+
     navigate("/household?new=1");
   }
 
   return (
     <div className="fab-menu" ref={menuRef}>
+      {isMenuOpen ? <div className="fab-menu-backdrop" aria-hidden="true" onClick={() => setIsMenuOpen(false)} /> : null}
+
       {isMenuOpen ? (
         <div className="fab-menu-panel" role="menu" aria-label="Choose transaction type">
           <button className="fab-option-card" type="button" role="menuitem" onClick={openPersonalTransactionModal}>
