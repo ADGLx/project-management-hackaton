@@ -1181,6 +1181,10 @@ button:disabled {
   padding-right: 0.1rem;
 }
 
+.transactions-card .transactions-list {
+  max-height: calc((var(--household-transaction-row-height) * 8) + 1.26rem);
+}
+
 .household-bills-subtitle {
   margin: 0;
   font-size: 0.86rem;

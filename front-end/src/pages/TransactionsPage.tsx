@@ -443,11 +443,8 @@ export default function TransactionsPage() {
           <span className="dashboard-title-icon" aria-hidden="true">
             🍁
           </span>
-          <span>Transactions</span>
+          <span>History</span>
         </h1>
-        <button className="compact-primary-button" type="button" onClick={openTransactionModal}>
-          Add Transaction
-        </button>
       </section>
 
       <section className="dashboard-card transactions-card">
