@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 
 export default function LoginPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const currentLanguage = i18n.resolvedLanguage === "fr-CA" ? "fr-CA" : "en";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,6 +43,26 @@ export default function LoginPage() {
       </section>
 
       <section className="auth-panel form-panel">
+        <div className="side-panel-language-toggle auth-language-toggle" role="group" aria-label={t("language.label")}>
+          <button
+            className={`secondary-button side-panel-language-button${currentLanguage === "en" ? " active" : ""}`}
+            type="button"
+            onClick={() => void i18n.changeLanguage("en")}
+            aria-pressed={currentLanguage === "en"}
+            title={t("language.english")}
+          >
+            EN
+          </button>
+          <button
+            className={`secondary-button side-panel-language-button${currentLanguage === "fr-CA" ? " active" : ""}`}
+            type="button"
+            onClick={() => void i18n.changeLanguage("fr-CA")}
+            aria-pressed={currentLanguage === "fr-CA"}
+            title={t("language.frenchCanada")}
+          >
+            FR
+          </button>
+        </div>
 
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
