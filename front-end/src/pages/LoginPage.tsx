@@ -33,9 +33,7 @@ export default function LoginPage() {
       <section className="auth-panel brand-panel">
         <p className="eyebrow">Welcome</p>
         <h1 className="app-brand-title">
-          <span className="app-brand-icon" aria-hidden="true">
-            🍁
-          </span>
+          <img className="app-brand-icon" src="/diversity.svg" alt="" aria-hidden="true" />
           <span>Coloc Calcul</span>
         </h1>
         <p>Budget tailored to Canadias.</p>

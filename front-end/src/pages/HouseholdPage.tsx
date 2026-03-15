@@ -641,9 +641,7 @@ export default function HouseholdPage() {
       <section className="page-title-row page-title-actions">
         <h1 className="dashboard-title">
           <PageSidePanel />
-          <span className="dashboard-title-icon" aria-hidden="true">
-            🍁
-          </span>
+          <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
           <span>Household</span>
           {household ? (
             <button

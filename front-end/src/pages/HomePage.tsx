@@ -240,9 +240,7 @@ export default function HomePage() {
       <section className="page-title-row">
         <h1 className="dashboard-title">
           <PageSidePanel />
-          <span className="dashboard-title-icon" aria-hidden="true">
-            🍁
-          </span>
+          <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
           <span>Coloc Calcul</span>
         </h1>
       </section>
