@@ -241,7 +241,7 @@ export default function HomePage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
-          <span>Coloc Calcul</span>
+          <span>Dashboard</span>
         </h1>
       </section>
 
