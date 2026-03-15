@@ -4,15 +4,8 @@ import { useAuth } from "../state/AuthContext";
 
 type ThemeMode = "light" | "dark";
 
-const themeStorageKey = "coloc-theme";
-
 function detectInitialTheme(): ThemeMode {
-  const savedTheme = window.localStorage.getItem(themeStorageKey);
-  if (savedTheme === "light" || savedTheme === "dark") {
-    return savedTheme;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "light";
 }
 
 export default function PageSidePanel() {
@@ -43,7 +36,6 @@ export default function PageSidePanel() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
-    window.localStorage.setItem(themeStorageKey, themeMode);
   }, [themeMode]);
 
   async function onLogout() {

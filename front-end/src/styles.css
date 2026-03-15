@@ -45,40 +45,6 @@
   --shadow: 0 20px 45px -25px rgba(95, 31, 31, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1a1b1f;
-    --bg-grid: rgba(255, 255, 255, 0.06);
-    --panel: #202125;
-    --panel-strong: #202125;
-    --text: #f2f3f6;
-    --muted: #b2b7c2;
-    --primary: #f01919;
-    --primary-strong: #cb1212;
-    --primary-glow: rgba(240, 25, 25, 0.33);
-    --border: rgba(255, 255, 255, 0.12);
-    --error: #ff8f7a;
-    --success: #00c46b;
-    --receipt-icon-bg: #262f46;
-    --bg-accent-1: rgba(240, 25, 25, 0.22);
-    --bg-accent-2: rgba(240, 25, 25, 0.1);
-    --brand-gradient-start: #f01919;
-    --brand-gradient-end: #8f0f0f;
-    --brand-text: #fff2f2;
-    --brand-muted: rgba(255, 242, 242, 0.92);
-    --button-text: #fff5f5;
-    --mobile-nav-active-bg-start: rgba(240, 25, 25, 0.28);
-    --mobile-nav-active-bg-end: rgba(240, 25, 25, 0.1);
-    --chart-1: #f01919;
-    --chart-2: #ff3a3a;
-    --chart-3: #ff5a5a;
-    --chart-4: #ff7a7a;
-    --chart-5: #ff9b9b;
-    --chart-6: #ffc0c0;
-    --shadow: 0 24px 55px -30px rgba(0, 0, 0, 0.6);
-  }
-}
-
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #f6f2f2;
