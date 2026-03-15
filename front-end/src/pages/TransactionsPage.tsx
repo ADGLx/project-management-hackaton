@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCamera, faFileCode, faFileCsv, faFilter, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
@@ -22,14 +23,22 @@ function todayAsDateInputValue(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatDateForDisplay(dateValue: string): string {
+function formatDateForDisplay(dateValue: string, locale: string): string {
   const [year, month, day] = dateValue.split("-");
 
   if (!year || !month || !day) {
     return dateValue;
   }
 
-  return `${year}-${month}-${day}`;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  return Number.isNaN(date.getTime())
+    ? dateValue
+    : new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "UTC",
+      }).format(date);
 }
 
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
@@ -46,6 +55,7 @@ function classifyTransactionCategory(type: string): TransactionCategory {
 }
 
 export default function TransactionsPage() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<UserTransaction[]>([]);
@@ -75,14 +85,16 @@ export default function TransactionsPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<UserTransaction | null>(null);
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
+  const locale = i18n.language === "fr-CA" ? "fr-CA" : "en-CA";
+  const labelForCategory = (category: TransactionCategory): string => (category === "Fixed" ? t("transactions.fixed") : t("transactions.variable"));
   const formattedCurrency = useMemo(
     () =>
-      new Intl.NumberFormat("en-CA", {
+      new Intl.NumberFormat(locale, {
         style: "currency",
         currency: "CAD",
         maximumFractionDigits: 2,
       }),
-    [],
+    [locale],
   );
 
   const modalTypeOptions = useMemo(() => {
@@ -155,7 +167,7 @@ export default function TransactionsPage() {
     }
 
     if (!transactionsResult.ok || !transactionTypesResult.ok) {
-      setDataError("Some transaction data could not be loaded right now.");
+      setDataError(t("errors.failedLoadTransactions"));
     }
   }
 
@@ -182,7 +194,7 @@ export default function TransactionsPage() {
       }
 
       if (!transactionsResult.ok || !transactionTypesResult.ok) {
-        setDataError("Some transaction data could not be loaded right now.");
+        setDataError(t("errors.failedLoadTransactions"));
       }
     }
 
@@ -191,7 +203,7 @@ export default function TransactionsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (searchParams.get("new") !== "1") {
@@ -307,7 +319,7 @@ export default function TransactionsPage() {
 
   function onScanReceiptClick() {
     if (!canScanReceipt) {
-      setReceiptError("Receipt scanning is available to subscribers only.");
+      setReceiptError(t("transactions.upgradeForReceipt"));
       return;
     }
 
@@ -346,22 +358,22 @@ export default function TransactionsPage() {
 
     const amountCad = Number(transactionAmountDraft);
     if (!Number.isFinite(amountCad) || amountCad <= 0) {
-      setTransactionError("Please enter a valid amount greater than 0.");
+      setTransactionError(t("errors.amountGreaterThanZero"));
       return;
     }
 
     if (!transactionTypeDraft.trim()) {
-      setTransactionError("Type is required.");
+      setTransactionError(t("errors.typeRequired"));
       return;
     }
 
     if (!transactionDescriptionDraft.trim()) {
-      setTransactionError("Description is required.");
+      setTransactionError(t("errors.descriptionRequired"));
       return;
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(transactionDateDraft)) {
-      setTransactionError("Date must be in YYYY-MM-DD format.");
+      setTransactionError(t("errors.invalidDateFormat"));
       return;
     }
 
@@ -441,7 +453,7 @@ export default function TransactionsPage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
-          <span>History</span>
+          <span>{t("transactions.title")}</span>
         </h1>
       </section>
 
@@ -453,19 +465,19 @@ export default function TransactionsPage() {
             onClick={() => setIsFilterSortOpen((current) => !current)}
             aria-expanded={isFilterSortOpen}
             aria-controls="transactions-filter-sort-panel"
-            aria-label="Toggle filter and sort"
-            title="Filter & Sort"
+            aria-label={t("transactions.toggleFilterSort")}
+            title={t("transactions.filterSortTitle")}
           >
             <FontAwesomeIcon icon={faFilter} aria-hidden="true" />
           </button>
           <div className="card-top-right-actions">
-            <div className="export-actions" role="group" aria-label="Export transactions">
+            <div className="export-actions" role="group" aria-label={t("transactions.exportTransactions")}>
               <button
                 className="secondary-button export-button"
                 type="button"
                 onClick={exportTransactionsAsCsv}
                 disabled={!canExportTransactions || transactions.length === 0}
-                aria-label="Export transactions as CSV"
+                aria-label={t("transactions.exportCsv")}
               >
                 <FontAwesomeIcon icon={faFileCsv} aria-hidden="true" />
                 <span>CSV</span>
@@ -475,7 +487,7 @@ export default function TransactionsPage() {
                 type="button"
                 onClick={exportTransactionsAsJson}
                 disabled={!canExportTransactions || transactions.length === 0}
-                aria-label="Export transactions as JSON"
+                aria-label={t("transactions.exportJson")}
               >
                 <FontAwesomeIcon icon={faFileCode} aria-hidden="true" />
                 <span>JSON</span>
@@ -487,18 +499,18 @@ export default function TransactionsPage() {
         {isFilterSortOpen ? (
           <div className="filter-sort-panel" id="transactions-filter-sort-panel">
             <label>
-              Category
+              {t("transactions.category")}
               <select value={selectedCategoryFilter} onChange={(event) => setSelectedCategoryFilter(event.target.value as CategoryFilterOption)}>
-                <option value="all">All categories</option>
-                <option value="fixed">Fixed</option>
-                <option value="variable">Variable</option>
+                <option value="all">{t("transactions.allCategories")}</option>
+                <option value="fixed">{t("transactions.fixed")}</option>
+                <option value="variable">{t("transactions.variable")}</option>
               </select>
             </label>
 
             <label>
-              Filter by type
+              {t("transactions.filterByType")}
               <select value={selectedTypeFilter} onChange={(event) => setSelectedTypeFilter(event.target.value)}>
-                <option value="all">All types</option>
+                <option value="all">{t("transactions.allTypes")}</option>
                 {availableTypeFilters.map((typeName) => (
                   <option key={typeName} value={typeName}>
                     {typeName}
@@ -508,18 +520,18 @@ export default function TransactionsPage() {
             </label>
 
             <label>
-              Sort by
+              {t("transactions.sortBy")}
               <select value={selectedSortOption} onChange={(event) => setSelectedSortOption(event.target.value as SortOption)}>
-                <option value="dateDesc">Date (newest first)</option>
-                <option value="dateAsc">Date (oldest first)</option>
-                <option value="amountDesc">Amount (highest first)</option>
-                <option value="amountAsc">Amount (lowest first)</option>
+                <option value="dateDesc">{t("transactions.dateNewest")}</option>
+                <option value="dateAsc">{t("transactions.dateOldest")}</option>
+                <option value="amountDesc">{t("transactions.amountHighest")}</option>
+                <option value="amountAsc">{t("transactions.amountLowest")}</option>
               </select>
             </label>
           </div>
         ) : null}
 
-        {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
+        {!canExportTransactions ? <p className="feedback">{t("transactions.exportSubscriberOnly")}</p> : null}
 
         {visibleTransactions.length > 0 ? (
           <div className="transactions-list" role="list">
@@ -530,16 +542,18 @@ export default function TransactionsPage() {
                 role="listitem"
                 key={transaction.id}
                 onClick={() => openTransactionDetailsModal(transaction)}
-                aria-label={`Open details for ${transaction.description}`}
+                aria-label={t("transactions.openDetailsFor", { description: transaction.description })}
               >
                 <span className="household-transaction-main-line">
                   <span className="household-transaction-description">{transaction.description}</span>
                   <span className="household-transaction-amount">{formattedCurrency.format(transaction.amountCad)}</span>
                 </span>
                 <span className="household-transaction-meta-line">
-                  <span>Category: {classifyTransactionCategory(transaction.type)}</span>
+                  <span>
+                    {t("transactions.category")}: {labelForCategory(classifyTransactionCategory(transaction.type))}
+                  </span>
                   <span className="household-transaction-type">
-                    {transaction.type} • {formatDateForDisplay(transaction.transactionDate)}
+                    {transaction.type} • {formatDateForDisplay(transaction.transactionDate, locale)}
                   </span>
                 </span>
               </button>
@@ -548,8 +562,8 @@ export default function TransactionsPage() {
         ) : (
           <p>
             {transactions.length > 0
-              ? "No transactions match your current filters."
-              : "No transactions yet. Use Add Transaction to create your first one."}
+              ? t("transactions.noMatches")
+              : t("transactions.noTransactionsYet")}
           </p>
         )}
       </section>
@@ -571,34 +585,34 @@ export default function TransactionsPage() {
                 className="secondary-button modal-close-button"
                 type="button"
                 onClick={closeTransactionDetailsModal}
-                aria-label="Close transaction details modal"
-                title="Close"
+                aria-label={t("transactions.closeDetailsModal")}
+                title={t("common.close")}
               >
                 <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
               </button>
-              <h2 id="transaction-details-title">Transaction details</h2>
+              <h2 id="transaction-details-title">{t("transactions.transactionDetails")}</h2>
             </div>
 
             <div className="household-transaction-details-grid">
               <p>
-                <span className="household-transaction-detail-label">Description</span>
+                <span className="household-transaction-detail-label">{t("transactions.description")}</span>
                 <strong className="household-transaction-detail-value">{selectedTransaction.description}</strong>
               </p>
               <p>
-                <span className="household-transaction-detail-label">Amount</span>
+                <span className="household-transaction-detail-label">{t("home.amount")}</span>
                 <strong className="household-transaction-detail-value">{formattedCurrency.format(selectedTransaction.amountCad)}</strong>
               </p>
               <p>
-                <span className="household-transaction-detail-label">Category</span>
-                <strong className="household-transaction-detail-value">{classifyTransactionCategory(selectedTransaction.type)}</strong>
+                <span className="household-transaction-detail-label">{t("transactions.category")}</span>
+                <strong className="household-transaction-detail-value">{labelForCategory(classifyTransactionCategory(selectedTransaction.type))}</strong>
               </p>
               <p>
-                <span className="household-transaction-detail-label">Type</span>
+                <span className="household-transaction-detail-label">{t("transactions.type")}</span>
                 <strong className="household-transaction-detail-value">{selectedTransaction.type}</strong>
               </p>
               <p>
-                <span className="household-transaction-detail-label">Date</span>
-                <strong className="household-transaction-detail-value">{formatDateForDisplay(selectedTransaction.transactionDate)}</strong>
+                <span className="household-transaction-detail-label">{t("transactions.date")}</span>
+                <strong className="household-transaction-detail-value">{formatDateForDisplay(selectedTransaction.transactionDate, locale)}</strong>
               </p>
             </div>
 
@@ -609,7 +623,7 @@ export default function TransactionsPage() {
                 onClick={onEditFromTransactionDetails}
                 disabled={isSavingTransaction || isDeletingTransactionId === selectedTransaction.id}
               >
-                Edit
+                {t("common.edit")}
               </button>
               <button
                 className="secondary-button"
@@ -617,7 +631,7 @@ export default function TransactionsPage() {
                 onClick={() => void onDeleteFromTransactionDetails()}
                 disabled={isDeletingTransactionId === selectedTransaction.id || isSavingTransaction}
               >
-                {isDeletingTransactionId === selectedTransaction.id ? "Deleting..." : "Delete"}
+                {isDeletingTransactionId === selectedTransaction.id ? t("transactions.deleting") : t("common.delete")}
               </button>
             </div>
           </section>
@@ -639,20 +653,20 @@ export default function TransactionsPage() {
                 type="button"
                 onClick={closeTransactionModal}
                 disabled={isSavingTransaction || isExtractingReceipt}
-                aria-label="Close transaction modal"
-                title="Close"
+                aria-label={t("transactions.closeModal")}
+                title={t("common.close")}
               >
                 <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
               </button>
-              <h2 id="transaction-modal-title">{editingTransactionId ? "Edit Transaction" : "Add Transaction"}</h2>
+              <h2 id="transaction-modal-title">{editingTransactionId ? t("transactions.editTransaction") : t("transactions.addTransaction")}</h2>
               {!editingTransactionId ? (
                 <button
                   className="secondary-button scan-receipt-button"
                   type="button"
                   onClick={onScanReceiptClick}
                   disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0 || !canScanReceipt}
-                  aria-label={isExtractingReceipt ? "Scanning receipt" : canScanReceipt ? "Scan receipt" : "Subscribers only"}
-                  title={isExtractingReceipt ? "Scanning receipt" : canScanReceipt ? "Scan receipt" : "Subscribers only"}
+                  aria-label={isExtractingReceipt ? t("transactions.scanningReceipt") : canScanReceipt ? t("transactions.scanReceipt") : t("transactions.subscribersOnly")}
+                  title={isExtractingReceipt ? t("transactions.scanningReceipt") : canScanReceipt ? t("transactions.scanReceipt") : t("transactions.subscribersOnly")}
                 >
                   <FontAwesomeIcon icon={faCamera} aria-hidden="true" />
                 </button>
@@ -670,7 +684,7 @@ export default function TransactionsPage() {
             />
 
             {!canScanReceipt && !editingTransactionId ? (
-              <p className="feedback">Upgrade to subscriber to unlock receipt scanning.</p>
+              <p className="feedback">{t("transactions.upgradeForReceipt")}</p>
             ) : null}
 
             {receiptError ? <p className="feedback error">{receiptError}</p> : null}
@@ -683,7 +697,7 @@ export default function TransactionsPage() {
               }}
             >
               <label>
-                Date
+                {t("transactions.date")}
                 <input
                   type="date"
                   value={transactionDateDraft}
@@ -694,14 +708,14 @@ export default function TransactionsPage() {
               </label>
 
               <label>
-                Type
+                {t("transactions.type")}
                 <select
                   value={transactionTypeDraft}
                   onChange={(event) => setTransactionTypeDraft(event.target.value)}
                   disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
                   required
                 >
-                  {modalTypeOptions.length === 0 ? <option value="">No types available</option> : null}
+                  {modalTypeOptions.length === 0 ? <option value="">{t("transactions.noTypesAvailable")}</option> : null}
                   {modalTypeOptions.map((typeName) => (
                     <option key={typeName} value={typeName}>
                       {typeName}
@@ -711,11 +725,11 @@ export default function TransactionsPage() {
               </label>
 
               {modalTypeOptions.length === 0 ? (
-                <p className="feedback error">No transaction types found. Add one in your user page first.</p>
+                <p className="feedback error">{t("transactions.noTypesFound")}</p>
               ) : null}
 
               <label>
-                Amount (CAD)
+                {t("transactions.amountCad")}
                 <input
                   type="number"
                   min={0.01}
@@ -729,13 +743,13 @@ export default function TransactionsPage() {
               </label>
 
               <label className="transaction-description-field">
-                Description
+                {t("transactions.description")}
                 <input
                   type="text"
                   value={transactionDescriptionDraft}
                   onChange={(event) => setTransactionDescriptionDraft(event.target.value)}
                   disabled={isSavingTransaction || isExtractingReceipt}
-                  placeholder="Short note about this transaction"
+                  placeholder={t("transactions.shortNote")}
                   required
                 />
               </label>
@@ -755,26 +769,26 @@ export default function TransactionsPage() {
                     }}
                     disabled={isSavingTransaction || isExtractingReceipt || !canUseRecurringTransactions}
                   />
-                  <span>Make this transaction recurring</span>
+                  <span>{t("transactions.recurringToggle")}</span>
                 </label>
 
                 {isRecurringDraft && canUseRecurringTransactions ? (
                   <div className="recurrence-fields-grid">
                     <label>
-                      Frequency
+                      {t("transactions.frequency")}
                       <select
                         value={recurrenceFrequencyDraft}
                         onChange={(event) => setRecurrenceFrequencyDraft(event.target.value as RecurrenceFrequency)}
                         disabled={isSavingTransaction || isExtractingReceipt}
                       >
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
+                        <option value="weekly">{t("transactions.weekly")}</option>
+                        <option value="monthly">{t("transactions.monthly")}</option>
+                        <option value="yearly">{t("transactions.yearly")}</option>
                       </select>
                     </label>
 
                     <label>
-                      Starts on
+                      {t("transactions.startsOn")}
                       <input
                         type="date"
                         value={recurrenceStartDateDraft}
@@ -784,21 +798,21 @@ export default function TransactionsPage() {
                     </label>
 
                     <label>
-                      Ends
+                      {t("transactions.ends")}
                       <select
                         value={recurrenceEndModeDraft}
                         onChange={(event) => setRecurrenceEndModeDraft(event.target.value as RecurrenceEndMode)}
                         disabled={isSavingTransaction || isExtractingReceipt}
                       >
-                        <option value="never">Never</option>
-                        <option value="onDate">On date</option>
-                        <option value="afterOccurrences">After occurrences</option>
+                        <option value="never">{t("transactions.never")}</option>
+                        <option value="onDate">{t("transactions.onDate")}</option>
+                        <option value="afterOccurrences">{t("transactions.afterOccurrences")}</option>
                       </select>
                     </label>
 
                     {recurrenceEndModeDraft === "onDate" ? (
                       <label>
-                        End date
+                        {t("transactions.endDate")}
                         <input
                           type="date"
                           value={recurrenceEndDateDraft}
@@ -810,7 +824,7 @@ export default function TransactionsPage() {
 
                     {recurrenceEndModeDraft === "afterOccurrences" ? (
                       <label>
-                        Occurrences
+                        {t("transactions.occurrences")}
                         <input
                           type="number"
                           min={1}
@@ -823,18 +837,18 @@ export default function TransactionsPage() {
                       </label>
                     ) : null}
 
-                    <p className="recurrence-preview-note">Preview only for now. Automation will be enabled in a future backend update.</p>
+                    <p className="recurrence-preview-note">{t("transactions.recurrencePreview")}</p>
                   </div>
                 ) : null}
 
-                {!canUseRecurringTransactions ? <p className="feedback">Recurring transactions are a subscriber feature.</p> : null}
+                {!canUseRecurringTransactions ? <p className="feedback">{t("transactions.recurringSubscriberOnly")}</p> : null}
               </fieldset>
 
               {transactionError ? <p className="feedback error">{transactionError}</p> : null}
 
               <div className="modal-actions">
                 <button type="submit" disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}>
-                  {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
+                  {isSavingTransaction ? t("home.saving") : editingTransactionId ? t("transactions.saveChanges") : t("transactions.saveTransaction")}
                 </button>
               </div>
             </form>

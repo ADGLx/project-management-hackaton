@@ -1,9 +1,11 @@
 import { faCrown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../state/AuthContext";
 
 export default function SubscriptionControl() {
+  const { t } = useTranslation();
   const { user, updateSubscriptionStatus } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -58,8 +60,8 @@ export default function SubscriptionControl() {
         className={`subscription-trigger secondary-button${user.subscribers ? " is-subscribed" : ""}`}
         type="button"
         onClick={() => setIsModalOpen(true)}
-        aria-label="Subscription settings"
-        title="Subscription settings"
+        aria-label={t("subscription.settings")}
+        title={t("subscription.settings")}
       >
         <FontAwesomeIcon icon={faCrown} />
       </button>
@@ -74,22 +76,22 @@ export default function SubscriptionControl() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-title-row">
-              <h2 id="subscription-modal-title">Subscription</h2>
+              <h2 id="subscription-modal-title">{t("subscription.title")}</h2>
               <button className="secondary-button" type="button" onClick={closeModal} disabled={isSaving}>
-                Close
+                {t("common.close")}
               </button>
             </div>
 
             <p>
-              Status: <strong>{user.subscribers ? "Subscribed" : "Not subscribed"}</strong>
+              {t("common.status")}: <strong>{user.subscribers ? t("subscription.subscribed") : t("subscription.notSubscribed")}</strong>
             </p>
 
-            <p>Use subscription to unlock premium account features in future releases.</p>
+            <p>{t("subscription.description")}</p>
 
             {error ? <p className="feedback error">{error}</p> : null}
 
             <button type="button" onClick={onToggleSubscription} disabled={isSaving}>
-              {isSaving ? "Saving..." : user.subscribers ? "Unsubscribe" : "Subscribe"}
+              {isSaving ? t("subscription.saving") : user.subscribers ? t("subscription.unsubscribe") : t("subscription.subscribe")}
             </button>
           </section>
         </div>

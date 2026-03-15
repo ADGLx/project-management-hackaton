@@ -1,9 +1,11 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -31,37 +33,37 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <section className="auth-panel brand-panel">
-        <p className="eyebrow">Welcome</p>
+        <p className="eyebrow">{t("auth.welcome")}</p>
         <h1 className="app-brand-title">
           <img className="app-brand-icon" src="/diversity-white.svg" alt="" aria-hidden="true" />
           <span>Coloc Calcul</span>
         </h1>
-        <p>Budget tailored to Canadias.</p>
+        <p>{t("auth.appTagline")}</p>
       </section>
 
       <section className="auth-panel form-panel">
 
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
-            Email
+            {t("auth.email")}
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
-              placeholder="you@team.com"
+              placeholder={t("auth.email")}
               required
             />
           </label>
 
           <label>
-            Password
+            {t("auth.password")}
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              placeholder="At least 8 characters"
+              placeholder={t("auth.password")}
               required
               minLength={8}
             />
@@ -70,7 +72,7 @@ export default function LoginPage() {
           {error ? <p className="feedback error">{error}</p> : null}
 
           <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? t("auth.signingIn") : t("auth.signIn")}
           </button>
 
           <button
@@ -82,13 +84,13 @@ export default function LoginPage() {
             }}
             disabled={isSubmitting}
           >
-            Use demo account
+            {t("auth.useDemo")}
           </button>
         </form>
 
 
         <p className="switch-link">
-          New here? <Link to="/register">Create an account</Link>
+          {t("auth.newHere")} <Link to="/register">{t("auth.createAccountLink")}</Link>
         </p>
       </section>
     </main>

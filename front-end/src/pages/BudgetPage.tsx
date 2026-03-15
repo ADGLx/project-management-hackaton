@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
 import PageSidePanel from "../components/PageSidePanel";
@@ -16,11 +17,11 @@ function currentMonthStartDateString(): string {
   return `${year}-${month}-01`;
 }
 
-function monthLabel(monthStart: string): string {
+function monthLabel(monthStart: string, locale: string): string {
   const [year, month] = monthStart.split("-");
   const date = new Date(Number(year), Number(month) - 1, 1);
 
-  return new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     year: "numeric",
   }).format(date);
@@ -40,6 +41,7 @@ function currentMonthDateMeta() {
 }
 
 export default function BudgetPage() {
+  const { t, i18n } = useTranslation();
   const { budgetAmountCad } = useAuth();
   const [spendingHistory, setSpendingHistory] = useState<MonthlySpendingPoint[]>([]);
   const [dataError, setDataError] = useState("");
@@ -47,17 +49,18 @@ export default function BudgetPage() {
   const currentMonthStart = useMemo(() => currentMonthStartDateString(), []);
   const { dayOfMonth, daysInMonth } = useMemo(() => currentMonthDateMeta(), []);
 
+  const locale = i18n.language === "fr-CA" ? "fr-CA" : "en-CA";
   const formattedCurrency = useMemo(
     () =>
-      new Intl.NumberFormat("en-CA", {
+      new Intl.NumberFormat(locale, {
         style: "currency",
         currency: "CAD",
         maximumFractionDigits: 2,
       }),
-    [],
+    [locale],
   );
 
-  const currentMonthLabel = useMemo(() => monthLabel(currentMonthStart), [currentMonthStart]);
+  const currentMonthLabel = useMemo(() => monthLabel(currentMonthStart, locale), [currentMonthStart, locale]);
 
   const spendingByMonth = useMemo(() => {
     const byMonth = new Map<string, number>();
@@ -115,12 +118,12 @@ export default function BudgetPage() {
 
       return [
         ...oldestToNewest.map((month, index) => ({
-          label: monthLabel(month.monthStart),
+          label: monthLabel(month.monthStart, locale),
           actualCad: month.spendingAmountCad,
           predictedCad: index === lastHistoricalIndex ? month.spendingAmountCad : null,
         })),
         {
-          label: monthLabel(currentMonthStart),
+          label: monthLabel(currentMonthStart, locale),
           actualCad: currentMonthSpending,
           predictedCad: predictedSpending,
         },
@@ -129,17 +132,17 @@ export default function BudgetPage() {
 
     return [
       {
-        label: "Current",
+        label: t("budget.current"),
         actualCad: currentMonthSpending,
         predictedCad: currentMonthSpending,
       },
       {
-        label: "Forecast",
+        label: t("budget.forecastPoint"),
         actualCad: null,
         predictedCad: predictedSpending,
       },
     ];
-  }, [recentCompletedMonths, currentMonthStart, predictedSpending, currentMonthSpending]);
+  }, [recentCompletedMonths, currentMonthStart, predictedSpending, currentMonthSpending, locale, t]);
 
   useEffect(() => {
     let isMounted = true;
@@ -152,7 +155,7 @@ export default function BudgetPage() {
       }
 
       if (!result.ok) {
-        setDataError("Predicted spending could not be loaded right now.");
+        setDataError(t("budget.loadError"));
         return;
       }
 
@@ -165,7 +168,7 @@ export default function BudgetPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!isPredictionInfoModalOpen) {
@@ -188,20 +191,20 @@ export default function BudgetPage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
-          <span>Budget</span>
+          <span>{t("budget.title")}</span>
         </h1>
       </section>
 
       <section className="dashboard-card budget-prediction-card">
         <div className="budget-prediction-header">
           <div className="budget-prediction-title-wrap">
-            <h2>Forecast</h2>
+            <h2>{t("budget.forecast")}</h2>
             <button
               className="dashboard-title-info-button"
               type="button"
               onClick={() => setIsPredictionInfoModalOpen(true)}
-              aria-label="Open predicted spending info"
-              title="Predicted spending info"
+               aria-label={t("budget.openPredictionInfo")}
+               title={t("budget.predictionInfo")}
             >
               <FontAwesomeIcon icon={faCircleInfo} aria-hidden="true" />
             </button>
@@ -213,11 +216,11 @@ export default function BudgetPage() {
           <div className="budget-chart-legend" aria-hidden="true">
             <span className="budget-chart-legend-item">
               <span className="budget-chart-legend-swatch budget-chart-legend-swatch-actual" />
-              <span>Actual</span>
+              <span>{t("budget.actual")}</span>
             </span>
             <span className="budget-chart-legend-item">
               <span className="budget-chart-legend-swatch budget-chart-legend-swatch-predicted" />
-              <span>Predicted</span>
+              <span>{t("budget.predicted")}</span>
             </span>
           </div>
           <ResponsiveContainer width="100%" height="100%">
@@ -231,11 +234,11 @@ export default function BudgetPage() {
               />
               <Tooltip
                 formatter={(value: number, seriesName: string) => [formattedCurrency.format(Number(value)), seriesName]}
-                labelFormatter={(label) => `Period: ${String(label)}`}
+                labelFormatter={(label) => t("budget.period", { label: String(label) })}
               />
               <Line
                 type="monotone"
-                name="Actual"
+                name={t("budget.actual")}
                 dataKey="actualCad"
                 stroke="var(--chart-category-1)"
                 strokeWidth={2.5}
@@ -245,7 +248,7 @@ export default function BudgetPage() {
               />
               <Line
                 type="monotone"
-                name="Predicted"
+                name={t("budget.predicted")}
                 dataKey="predictedCad"
                 stroke="var(--chart-category-5)"
                 strokeWidth={2.5}
@@ -259,27 +262,27 @@ export default function BudgetPage() {
 
         <div className="budget-prediction-meta-grid">
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">Spent</p>
+            <p className="budget-summary-label">{t("home.spent")}</p>
             <p className="budget-prediction-tile-value">{formattedCurrency.format(currentMonthSpending)}</p>
           </article>
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">Run-rate</p>
+            <p className="budget-summary-label">{t("budget.runRate")}</p>
             <p className="budget-prediction-tile-value">{formattedCurrency.format(currentRunRateProjection)}</p>
           </article>
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">3-month avg</p>
+            <p className="budget-summary-label">{t("budget.avg3Month")}</p>
             <p className="budget-prediction-tile-value">
-              {historicalAverage === null ? "Not enough data" : formattedCurrency.format(historicalAverage)}
+              {historicalAverage === null ? t("budget.notEnoughData") : formattedCurrency.format(historicalAverage)}
             </p>
           </article>
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">Comparison</p>
+            <p className="budget-summary-label">{t("budget.comparison")}</p>
             <p className={`budget-prediction-tile-value ${predictedVarianceToBudget !== null && predictedVarianceToBudget >= 0 ? "amount-positive" : ""}`}>
               {predictedVarianceToBudget === null
-                ? "Budget not set"
+                ? t("budget.budgetNotSet")
                 : predictedVarianceToBudget >= 0
-                  ? `${formattedCurrency.format(predictedVarianceToBudget)} under`
-                  : `${formattedCurrency.format(Math.abs(predictedVarianceToBudget))} over`}
+                  ? t("budget.under", { amount: formattedCurrency.format(predictedVarianceToBudget) })
+                  : t("budget.over", { amount: formattedCurrency.format(Math.abs(predictedVarianceToBudget)) })}
             </p>
           </article>
         </div>
@@ -297,22 +300,18 @@ export default function BudgetPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="page-title-row page-title-actions">
-              <h2 id="prediction-info-modal-title">How prediction works</h2>
+              <h2 id="prediction-info-modal-title">{t("budget.howPredictionWorks")}</h2>
               <button className="secondary-button" type="button" onClick={() => setIsPredictionInfoModalOpen(false)}>
-                Close
+                {t("common.close")}
               </button>
             </div>
 
+            <p>{t("budget.blendExplanation")}</p>
             <p>
-              We blend your current month pace with your last 3 completed months to forecast the end of this month.
+              {t("budget.paceExplanation", { dayOfMonth, daysInMonth })}
             </p>
-            <p>
-              Current pace is based on <strong>{dayOfMonth}</strong> of <strong>{daysInMonth}</strong> elapsed days.
-            </p>
-            <p>Formula: (spent so far / days elapsed) * days in month</p>
-            <p>
-              If it is early in the month, we rely more on historical months to reduce volatility.
-            </p>
+            <p>{t("budget.formula")}</p>
+            <p>{t("budget.earlyMonth")}</p>
           </section>
         </div>
       ) : null}

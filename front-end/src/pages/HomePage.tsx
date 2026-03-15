@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowUpRightFromSquare, faChartPie, faGaugeHigh, faPenToSquare } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -9,20 +10,6 @@ import MobileNav from "../components/MobileNav";
 import PageSidePanel from "../components/PageSidePanel";
 import { useAuth } from "../state/AuthContext";
 import type { MonthlySpendingPoint, UserTransaction } from "../types/auth";
-
-function nameFromEmail(email?: string): string {
-  if (!email) {
-    return "Team Member";
-  }
-
-  const [leftSide] = email.split("@");
-
-  return leftSide
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 function currentMonthStartDateString(): string {
   const now = new Date();
@@ -43,7 +30,8 @@ function hashString(input: string): number {
 }
 
 export default function HomePage() {
-  const { user, profileName, budgetAmountCad, saveMonthlyBudget } = useAuth();
+  const { t, i18n } = useTranslation();
+  const { budgetAmountCad, saveMonthlyBudget } = useAuth();
   const [spendingHistory, setSpendingHistory] = useState<MonthlySpendingPoint[]>([]);
   const [transactions, setTransactions] = useState<UserTransaction[]>([]);
   const [dataError, setDataError] = useState("");
@@ -52,24 +40,24 @@ export default function HomePage() {
   const [budgetError, setBudgetError] = useState("");
   const [isSavingBudget, setIsSavingBudget] = useState(false);
   const [chartView, setChartView] = useState<"progress" | "breakdown">("progress");
-  const displayName = user?.name || profileName || nameFromEmail(user?.email);
+  const locale = i18n.language === "fr-CA" ? "fr-CA" : "en-CA";
   const formattedBudget =
     typeof budgetAmountCad === "number"
-      ? new Intl.NumberFormat("en-CA", {
+      ? new Intl.NumberFormat(locale, {
           style: "currency",
           currency: "CAD",
           maximumFractionDigits: 0,
         }).format(budgetAmountCad)
-      : "Not set";
+      : t("home.notSet");
 
   const formattedCurrency = useMemo(
     () =>
-      new Intl.NumberFormat("en-CA", {
+      new Intl.NumberFormat(locale, {
         style: "currency",
         currency: "CAD",
         maximumFractionDigits: 2,
       }),
-    [],
+    [locale],
   );
 
   const currentMonthStart = useMemo(() => currentMonthStartDateString(), []);
@@ -79,12 +67,12 @@ export default function HomePage() {
       const [year, month] = currentMonthStart.split("-");
       const budgetPeriodDate = new Date(Number(year), Number(month) - 1, 1);
 
-      return new Intl.DateTimeFormat("en-CA", {
+      return new Intl.DateTimeFormat(locale, {
         month: "long",
         year: "numeric",
       }).format(budgetPeriodDate);
     },
-    [currentMonthStart],
+    [currentMonthStart, locale],
   );
 
   const spendingByMonth = useMemo(() => {
@@ -161,7 +149,7 @@ export default function HomePage() {
     }
 
     if (!spendingHistoryResult.ok || !transactionsResult.ok) {
-      setDataError("Some dashboard data could not be loaded right now.");
+      setDataError(t("home.dashboardDataLoadError"));
     }
   }
 
@@ -188,7 +176,7 @@ export default function HomePage() {
       }
 
       if (!spendingHistoryResult.ok || !transactionsResult.ok) {
-        setDataError("Some dashboard data could not be loaded right now.");
+        setDataError(t("home.dashboardDataLoadError"));
       }
     }
 
@@ -197,7 +185,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   async function onSaveBudget() {
     setBudgetError("");
@@ -205,7 +193,7 @@ export default function HomePage() {
     const parsedBudget = Number(budgetDraft);
 
     if (!Number.isInteger(parsedBudget) || parsedBudget <= 0) {
-      setBudgetError("Please enter a whole number greater than 0.");
+      setBudgetError(t("errors.budgetWholeNumber"));
       return;
     }
 
@@ -241,7 +229,7 @@ export default function HomePage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
-          <span>Dashboard</span>
+          <span>{t("home.title")}</span>
         </h1>
       </section>
 
@@ -250,9 +238,9 @@ export default function HomePage() {
           <div className="budget-summary-header">
             <div>
               <div className="budget-period-line budget-period-line-labels">
-                <span className="budget-summary-label">Budget for</span>
+                <span className="budget-summary-label">{t("home.budgetFor")}</span>
                 <span className="budget-period-separator" aria-hidden="true" />
-                <span className="budget-summary-label">Amount</span>
+                <span className="budget-summary-label">{t("home.amount")}</span>
               </div>
               <div className="budget-period-line budget-period-line-values">
                 <span className="budget-period-value">{budgetPeriodLabel}</span>
@@ -264,8 +252,8 @@ export default function HomePage() {
                       className="budget-edit-button secondary-button"
                       type="button"
                       onClick={startEditingBudget}
-                      aria-label="Edit monthly budget"
-                      title="Edit monthly budget"
+                       aria-label={t("home.editBudget")}
+                       title={t("home.editBudget")}
                     >
                       <FontAwesomeIcon icon={faPenToSquare} />
                     </button>
@@ -291,11 +279,11 @@ export default function HomePage() {
 
                   <div className="budget-actions">
                     <button type="button" onClick={onSaveBudget} disabled={isSavingBudget}>
-                      {isSavingBudget ? "Saving..." : "Save"}
-                    </button>
-                    <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
-                      Cancel
-                    </button>
+                       {isSavingBudget ? t("home.saving") : t("home.save")}
+                     </button>
+                     <button className="secondary-button" type="button" onClick={cancelEditingBudget} disabled={isSavingBudget}>
+                      {t("common.cancel")}
+                     </button>
                   </div>
 
                   {budgetError ? <p className="feedback error">{budgetError}</p> : null}
@@ -306,8 +294,8 @@ export default function HomePage() {
               className="chart-toggle-button secondary-button"
               type="button"
               onClick={() => setChartView((current) => (current === "progress" ? "breakdown" : "progress"))}
-              aria-label={chartView === "progress" ? "Switch to spending breakdown chart" : "Switch to top spending types"}
-              title={chartView === "progress" ? "Switch to spending breakdown chart" : "Switch to top spending types"}
+               aria-label={chartView === "progress" ? t("home.spendingByCategory") : t("home.topSpendingCategories")}
+               title={chartView === "progress" ? t("home.spendingByCategory") : t("home.topSpendingCategories")}
             >
               <FontAwesomeIcon icon={chartView === "progress" ? faChartPie : faGaugeHigh} />
             </button>
@@ -320,7 +308,7 @@ export default function HomePage() {
               <div
                 className="budget-progress-track"
                 role="progressbar"
-                aria-label="Budget usage"
+                aria-label={t("home.budgetUsage")}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Number(cappedBudgetUsagePercent.toFixed(1))}
@@ -330,19 +318,19 @@ export default function HomePage() {
 
               <div className="budget-amounts-row">
                 <div className="budget-amount-block budget-amount-block-left">
-                  <p className="budget-summary-label">Spent</p>
+                  <p className="budget-summary-label">{t("home.spent")}</p>
                   <p className="budget-amount-value">{formattedCurrency.format(currentMonthSpending)}</p>
                 </div>
                 <div className="budget-amount-block budget-amount-block-right">
-                  <p className="budget-summary-label">Left</p>
+                  <p className="budget-summary-label">{t("home.left")}</p>
                   <p className={`budget-amount-value ${remainingBudgetCad !== null && remainingBudgetCad > 0 ? "amount-positive" : ""}`}>
-                    {remainingBudgetCad === null ? "Not set" : formattedCurrency.format(Math.max(remainingBudgetCad, 0))}
+                    {remainingBudgetCad === null ? t("home.notSet") : formattedCurrency.format(Math.max(remainingBudgetCad, 0))}
                   </p>
                 </div>
               </div>
 
               {isOverBudget && remainingBudgetCad !== null ? (
-                <p className="budget-progress-note">Over by {formattedCurrency.format(Math.abs(remainingBudgetCad))}</p>
+                <p className="budget-progress-note">{t("home.overBy", { amount: formattedCurrency.format(Math.abs(remainingBudgetCad)) })}</p>
               ) : null}
             </div>
           </div>
@@ -350,12 +338,12 @@ export default function HomePage() {
 
         <div className="overview-section chart-card">
           <div className="chart-card-toolbar">
-            <p className="chart-card-title">{chartView === "progress" ? "Top Spending Categories" : "Spending by Category"}</p>
+            <p className="chart-card-title">{chartView === "progress" ? t("home.topSpendingCategories") : t("home.spendingByCategory")}</p>
             <Link
               className="chart-details-link"
               to="/transactions"
-              aria-label="See details in transactions"
-              title="See details in transactions"
+               aria-label={t("home.seeDetailsInTransactions")}
+               title={t("home.seeDetailsInTransactions")}
             >
               <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
             </Link>
@@ -383,7 +371,7 @@ export default function HomePage() {
                 })}
               </div>
             ) : (
-              <p>No transactions in the current month to show top spending types.</p>
+               <p>{t("home.noTransactionsTopTypes")}</p>
             )
           ) : currentMonthBreakdownData.length > 0 ? (
             <div className="chart-wrap chart-wrap-donut">
@@ -399,11 +387,11 @@ export default function HomePage() {
               </ResponsiveContainer>
               <div className="budget-progress-overlay budget-progress-overlay-donut" aria-hidden="true">
                 <p className="budget-progress-value">{formattedCurrency.format(currentMonthSpending)}</p>
-                <p className="budget-progress-meta">Spent this month</p>
+                <p className="budget-progress-meta">{t("home.spentThisMonth")}</p>
               </div>
             </div>
           ) : (
-            <p>No transactions in the current month to show type breakdown.</p>
+            <p>{t("home.noTransactionsBreakdown")}</p>
           )}
         </div>
       </section>

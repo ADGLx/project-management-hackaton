@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarDays, faCamera, faCircleInfo, faFileCode, faFileCsv, faFilter, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
@@ -27,21 +28,29 @@ function todayAsDateInputValue(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatDateForDisplay(dateValue: string): string {
+function formatDateForDisplay(dateValue: string, locale: string): string {
   const [year, month, day] = dateValue.split("-");
 
   if (!year || !month || !day) {
     return dateValue;
   }
 
-  return `${year}-${month}-${day}`;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  return Number.isNaN(date.getTime())
+    ? dateValue
+    : new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "UTC",
+      }).format(date);
 }
 
 function currentMonthInputValue(): string {
   return new Date().toISOString().slice(0, 7);
 }
 
-function monthValueToLabel(monthValue: string): string {
+function monthValueToLabel(monthValue: string, locale: string): string {
   if (!/^\d{4}-\d{2}$/.test(monthValue)) {
     return monthValue;
   }
@@ -60,7 +69,7 @@ function monthValueToLabel(monthValue: string): string {
     return monthValue;
   }
 
-  return parsedDate.toLocaleString("en-CA", { month: "long", timeZone: "UTC" });
+  return parsedDate.toLocaleString(locale, { month: "long", timeZone: "UTC" });
 }
 
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
@@ -69,6 +78,7 @@ type SortOption = "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc";
 type SettlementDetailsModal = "owedToYou" | "youOwe";
 
 export default function HouseholdPage() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [household, setHousehold] = useState<Household | null>(null);
@@ -122,14 +132,15 @@ export default function HouseholdPage() {
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
   const monthInputRef = useRef<HTMLInputElement | null>(null);
 
+  const locale = i18n.language === "fr-CA" ? "fr-CA" : "en-CA";
   const formattedCurrency = useMemo(
     () =>
-      new Intl.NumberFormat("en-CA", {
+      new Intl.NumberFormat(locale, {
         style: "currency",
         currency: "CAD",
         maximumFractionDigits: 2,
       }),
-    [],
+    [locale],
   );
 
   const modalTypeOptions = useMemo(() => {
@@ -217,7 +228,7 @@ export default function HouseholdPage() {
     }
 
     if (!transactionsResult.ok || !settlementResult.ok || !transactionTypesResult.ok) {
-      setFinanceError("Shared household data could not be loaded right now.");
+      setFinanceError(t("errors.failedLoadHousehold"));
     }
 
     setIsFinanceLoading(false);
@@ -285,7 +296,7 @@ export default function HouseholdPage() {
     const name = newHouseholdName.trim();
 
     if (!name) {
-      setCreateError("Please enter a household name.");
+      setCreateError(t("household.pleaseEnterHouseholdName"));
       return;
     }
 
@@ -316,7 +327,7 @@ export default function HouseholdPage() {
     const email = inviteEmail.trim().toLowerCase();
 
     if (!email) {
-      setInviteError("Please enter a registered email.");
+      setInviteError(t("household.pleaseEnterRegisteredEmail"));
       return;
     }
 
@@ -331,7 +342,7 @@ export default function HouseholdPage() {
 
     setHousehold(result.household);
     setInviteEmail("");
-    setInviteSuccess("Invite sent. The user will appear in the members list once they accept the invitation.");
+    setInviteSuccess(t("household.inviteSent"));
   }
 
   async function onLeaveHousehold() {
@@ -351,7 +362,7 @@ export default function HouseholdPage() {
     setHousehold(null);
     setInviteEmail("");
     setIsHouseholdInfoModalOpen(false);
-    setLeaveSuccess("You left the household.");
+    setLeaveSuccess(t("household.leftHousehold"));
   }
 
   function closeHouseholdInfoModal() {
@@ -422,7 +433,7 @@ export default function HouseholdPage() {
 
   function onScanReceiptClick() {
     if (!canScanReceipt) {
-      setReceiptError("Receipt scanning is available to subscribers only.");
+      setReceiptError(t("transactions.upgradeForReceipt"));
       return;
     }
 
@@ -461,27 +472,27 @@ export default function HouseholdPage() {
 
     const amountCad = Number(transactionAmountDraft);
     if (!Number.isFinite(amountCad) || amountCad <= 0) {
-      setTransactionError("Please enter a valid amount greater than 0.");
+      setTransactionError(t("errors.amountGreaterThanZero"));
       return;
     }
 
     if (!transactionTypeDraft.trim()) {
-      setTransactionError("Type is required.");
+      setTransactionError(t("errors.typeRequired"));
       return;
     }
 
     if (!transactionDescriptionDraft.trim()) {
-      setTransactionError("Description is required.");
+      setTransactionError(t("errors.descriptionRequired"));
       return;
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(transactionDateDraft)) {
-      setTransactionError("Date must be in YYYY-MM-DD format.");
+      setTransactionError(t("errors.invalidDateFormat"));
       return;
     }
 
     if (participantUserIdsDraft.length === 0) {
-      setTransactionError("Select at least one member who should pay for this transaction.");
+      setTransactionError(t("household.selectMembersSplit"));
       return;
     }
 
@@ -642,13 +653,13 @@ export default function HouseholdPage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
-          <span>Household</span>
+          <span>{t("household.title")}</span>
         </h1>
       </section>
 
       <section className="dashboard-card">
         {isLoading ? (
-          <p>Loading household...</p>
+          <p>{t("household.loadingHousehold")}</p>
         ) : household ? (() => {
           const isCreator = household.createdByUserId === user?.id;
 
@@ -656,14 +667,14 @@ export default function HouseholdPage() {
             <>
                 <div className="household-finance-panel">
                   <div className="household-month-row">
-                    <h2 className="household-month-title">{monthValueToLabel(selectedSettlementMonth)}</h2>
+                    <h2 className="household-month-title">{monthValueToLabel(selectedSettlementMonth, locale)}</h2>
                     <div className="household-month-actions">
                       <button
                         className="secondary-button household-month-picker-button"
                         type="button"
                         onClick={() => setIsHouseholdInfoModalOpen(true)}
-                        aria-label="Open household info"
-                        title="Household Info"
+                        aria-label={t("household.openInfo")}
+                        title={t("household.householdInfo")}
                       >
                         <FontAwesomeIcon icon={faCircleInfo} aria-hidden="true" />
                       </button>
@@ -671,8 +682,8 @@ export default function HouseholdPage() {
                         className="secondary-button household-month-picker-button"
                         type="button"
                         onClick={onMonthPickerButtonClick}
-                        aria-label="Select settlement month"
-                        title="Select month"
+                        aria-label={t("household.selectSettlementMonth")}
+                        title={t("household.selectMonth")}
                       >
                         <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" />
                       </button>
@@ -685,14 +696,14 @@ export default function HouseholdPage() {
                       value={selectedSettlementMonth}
                       onChange={onSettlementMonthChange}
                       max={currentMonthInputValue()}
-                      aria-label="Select settlement month"
+                       aria-label={t("household.selectSettlementMonth")}
                     />
                   </div>
 
                   <div className="household-settlement-grid">
                     <section className="household-settlement-card" aria-labelledby="owed-to-you-title">
                       <div className="household-settlement-card-header">
-                        <h3 id="owed-to-you-title">Owed to you</h3>
+                        <h3 id="owed-to-you-title">{t("household.owedToYou")}</h3>
                       </div>
 
                       <p className="household-settlement-total">{formattedCurrency.format(owedToYouTotalCad)}</p>
@@ -702,13 +713,13 @@ export default function HouseholdPage() {
                         type="button"
                         onClick={() => setSettlementDetailsModal("owedToYou")}
                       >
-                        Details
+                        {t("household.details")}
                       </button>
                     </section>
 
                     <section className="household-settlement-card" aria-labelledby="you-owe-title">
                       <div className="household-settlement-card-header">
-                        <h3 id="you-owe-title">You owe</h3>
+                        <h3 id="you-owe-title">{t("household.youOwe")}</h3>
                       </div>
 
                       <p className="household-settlement-total">{formattedCurrency.format(youOweTotalCad)}</p>
@@ -718,7 +729,7 @@ export default function HouseholdPage() {
                         type="button"
                         onClick={() => setSettlementDetailsModal("youOwe")}
                       >
-                        Details
+                        {t("household.details")}
                       </button>
                     </section>
                   </div>
@@ -733,14 +744,16 @@ export default function HouseholdPage() {
                         onClick={(event) => event.stopPropagation()}
                       >
                         <div className="page-title-row page-title-actions">
-                          <h3 id="household-settlement-details-title">{settlementDetailsModal === "owedToYou" ? "Owed to you" : "You owe"}</h3>
+                          <h3 id="household-settlement-details-title">
+                            {settlementDetailsModal === "owedToYou" ? t("household.owedToYou") : t("household.youOwe")}
+                          </h3>
                           <button className="secondary-button" type="button" onClick={closeSettlementDetailsModal}>
-                            Close
+                            {t("common.close")}
                           </button>
                         </div>
 
                         <p className="household-settlement-detail-note">
-                          This is the net balance for {selectedSettlementMonth}, calculated from all shared transactions and split participants.
+                          {t("household.detailNote", { month: selectedSettlementMonth })}
                         </p>
 
                         {settlementDetailsModal === "owedToYou" ? (
@@ -748,29 +761,29 @@ export default function HouseholdPage() {
                             <ul className="household-owe-list">
                               {householdSettlement.owedToYou.map((line) => (
                                 <li key={`detail-${line.fromUserId}-${line.amountCad}`}>
-                                  {line.fromName} owes you <strong>{formattedCurrency.format(line.amountCad)}</strong>
+                                  {t("household.owedLine", { name: line.fromName, amount: formattedCurrency.format(line.amountCad) })}
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p>No one owes you.</p>
+                            <p>{t("household.noOneOwesYou")}</p>
                           )
                         ) : householdSettlement?.youOwe.length ? (
                           <ul className="household-owe-list">
                             {householdSettlement.youOwe.map((line) => (
                               <li key={`detail-${line.toUserId}-${line.amountCad}`}>
-                                You owe {line.toName} <strong>{formattedCurrency.format(line.amountCad)}</strong>
+                                {t("household.youOweLine", { name: line.toName, amount: formattedCurrency.format(line.amountCad) })}
                               </li>
                             ))}
                           </ul>
                         ) : (
-                          <p>You owe no one.</p>
+                          <p>{t("household.youOweNoOne")}</p>
                         )}
                       </section>
                     </div>
                   ) : null}
 
-                  <h3 className="household-bills-subtitle">Bills</h3>
+                  <h3 className="household-bills-subtitle">{t("household.bills")}</h3>
                   <hr className="household-bills-separator" />
                   <div className="page-title-row page-title-actions">
                     <button
@@ -779,19 +792,19 @@ export default function HouseholdPage() {
                       onClick={() => setIsFilterSortOpen((current) => !current)}
                       aria-expanded={isFilterSortOpen}
                       aria-controls="shared-transactions-filter-sort-panel"
-                      aria-label="Toggle filter and sort"
-                      title="Filter & Sort"
+                        aria-label={t("transactions.toggleFilterSort")}
+                        title={t("transactions.filterSortTitle")}
                     >
                       <FontAwesomeIcon icon={faFilter} aria-hidden="true" />
                     </button>
                     <div className="card-top-right-actions">
-                      <div className="export-actions" role="group" aria-label="Export household transactions">
+                      <div className="export-actions" role="group" aria-label={t("transactions.exportTransactions")}>
                         <button
                           className="secondary-button export-button"
                           type="button"
                           onClick={exportHouseholdTransactionsAsCsv}
                           disabled={!canExportTransactions || householdTransactions.length === 0}
-                          aria-label="Export household transactions as CSV"
+                          aria-label={t("transactions.exportCsv")}
                         >
                           <FontAwesomeIcon icon={faFileCsv} aria-hidden="true" />
                           <span>CSV</span>
@@ -801,7 +814,7 @@ export default function HouseholdPage() {
                           type="button"
                           onClick={exportHouseholdTransactionsAsJson}
                           disabled={!canExportTransactions || householdTransactions.length === 0}
-                          aria-label="Export household transactions as JSON"
+                          aria-label={t("transactions.exportJson")}
                         >
                           <FontAwesomeIcon icon={faFileCode} aria-hidden="true" />
                           <span>JSON</span>
@@ -813,9 +826,9 @@ export default function HouseholdPage() {
                   {isFilterSortOpen ? (
                     <div className="filter-sort-panel" id="shared-transactions-filter-sort-panel">
                       <label>
-                        Filter by type
+                        {t("transactions.filterByType")}
                         <select value={selectedTypeFilter} onChange={(event) => setSelectedTypeFilter(event.target.value)}>
-                          <option value="all">All types</option>
+                          <option value="all">{t("transactions.allTypes")}</option>
                           {availableTypeFilters.map((typeName) => (
                             <option key={typeName} value={typeName}>
                               {typeName}
@@ -825,21 +838,21 @@ export default function HouseholdPage() {
                       </label>
 
                       <label>
-                        Sort by
+                        {t("transactions.sortBy")}
                         <select value={selectedSortOption} onChange={(event) => setSelectedSortOption(event.target.value as SortOption)}>
-                          <option value="dateDesc">Date (newest first)</option>
-                          <option value="dateAsc">Date (oldest first)</option>
-                          <option value="amountDesc">Amount (highest first)</option>
-                          <option value="amountAsc">Amount (lowest first)</option>
+                          <option value="dateDesc">{t("transactions.dateNewest")}</option>
+                          <option value="dateAsc">{t("transactions.dateOldest")}</option>
+                          <option value="amountDesc">{t("transactions.amountHighest")}</option>
+                          <option value="amountAsc">{t("transactions.amountLowest")}</option>
                         </select>
                       </label>
                     </div>
                   ) : null}
 
-                  {!canExportTransactions ? <p className="feedback">Export is a subscriber feature.</p> : null}
+                  {!canExportTransactions ? <p className="feedback">{t("transactions.exportSubscriberOnly")}</p> : null}
 
                 {isFinanceLoading ? (
-                  <p>Loading shared data...</p>
+                  <p>{t("household.loadingSharedData")}</p>
                 ) : visibleHouseholdTransactions.length > 0 ? (
                   <div className="transactions-list" role="list">
                     {visibleHouseholdTransactions.map((transaction) => (
@@ -849,14 +862,14 @@ export default function HouseholdPage() {
                         role="listitem"
                         key={transaction.id}
                         onClick={() => openHouseholdTransactionDetailsModal(transaction)}
-                        aria-label={`Open details for ${transaction.description}`}
+                        aria-label={t("transactions.openDetailsFor", { description: transaction.description })}
                       >
                         <span className="household-transaction-main-line">
                           <span className="household-transaction-description">{transaction.description}</span>
                           <span className="household-transaction-amount">{formattedCurrency.format(transaction.amountCad)}</span>
                         </span>
                         <span className="household-transaction-meta-line">
-                          <span>By: {transaction.createdByName}</span>
+                          <span>{t("household.by", { name: transaction.createdByName })}</span>
                           <span className="household-transaction-type">{transaction.type}</span>
                         </span>
                       </button>
@@ -865,8 +878,8 @@ export default function HouseholdPage() {
                 ) : (
                   <p>
                     {householdTransactions.length > 0
-                      ? "No shared transactions match your current filters."
-                      : "No shared transactions yet."}
+                      ? t("household.noSharedMatches")
+                      : t("household.noSharedTransactions")}
                   </p>
                 )}
 
@@ -887,39 +900,39 @@ export default function HouseholdPage() {
                         className="secondary-button modal-close-button"
                         type="button"
                         onClick={closeHouseholdTransactionDetailsModal}
-                        aria-label="Close shared transaction details modal"
-                        title="Close"
+                        aria-label={t("household.closeSharedTransactionDetails")}
+                        title={t("common.close")}
                       >
                         <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
                       </button>
-                      <h2 id="household-transaction-details-title">Transaction details</h2>
+                      <h2 id="household-transaction-details-title">{t("transactions.transactionDetails")}</h2>
                     </div>
 
                     <div className="household-transaction-details-grid">
                       <p>
-                        <span className="household-transaction-detail-label">Description</span>
+                        <span className="household-transaction-detail-label">{t("transactions.description")}</span>
                         <strong className="household-transaction-detail-value">{selectedHouseholdTransaction.description}</strong>
                       </p>
                       <p>
-                        <span className="household-transaction-detail-label">Amount</span>
+                        <span className="household-transaction-detail-label">{t("home.amount")}</span>
                         <strong className="household-transaction-detail-value">{formattedCurrency.format(selectedHouseholdTransaction.amountCad)}</strong>
                       </p>
                       <p>
-                        <span className="household-transaction-detail-label">By</span>
+                        <span className="household-transaction-detail-label">{t("household.byLabel")}</span>
                         <strong className="household-transaction-detail-value">{selectedHouseholdTransaction.createdByName}</strong>
                       </p>
                       <p>
-                        <span className="household-transaction-detail-label">Type</span>
+                        <span className="household-transaction-detail-label">{t("transactions.type")}</span>
                         <strong className="household-transaction-detail-value">{selectedHouseholdTransaction.type}</strong>
                       </p>
                       <p>
-                        <span className="household-transaction-detail-label">Date</span>
-                        <strong className="household-transaction-detail-value">{formatDateForDisplay(selectedHouseholdTransaction.transactionDate)}</strong>
+                        <span className="household-transaction-detail-label">{t("transactions.date")}</span>
+                        <strong className="household-transaction-detail-value">{formatDateForDisplay(selectedHouseholdTransaction.transactionDate, locale)}</strong>
                       </p>
                       <p>
-                        <span className="household-transaction-detail-label">Split with</span>
+                        <span className="household-transaction-detail-label">{t("household.splitWith")}</span>
                         <strong className="household-transaction-detail-value">
-                          {selectedHouseholdTransaction.participants.map((participant) => participant.name).join(", ") || "nobody"}
+                          {selectedHouseholdTransaction.participants.map((participant) => participant.name).join(", ") || t("household.nobody")}
                         </strong>
                       </p>
                     </div>
@@ -931,7 +944,7 @@ export default function HouseholdPage() {
                         onClick={onEditFromHouseholdTransactionDetails}
                         disabled={isSavingTransaction || isDeletingTransactionId === selectedHouseholdTransaction.id}
                       >
-                        Edit
+                        {t("common.edit")}
                       </button>
                       <button
                         className="secondary-button"
@@ -939,7 +952,7 @@ export default function HouseholdPage() {
                         onClick={() => void onDeleteFromHouseholdTransactionDetails()}
                         disabled={isSavingTransaction || isDeletingTransactionId === selectedHouseholdTransaction.id}
                       >
-                        {isDeletingTransactionId === selectedHouseholdTransaction.id ? "Deleting..." : "Delete"}
+                        {isDeletingTransactionId === selectedHouseholdTransaction.id ? t("transactions.deleting") : t("common.delete")}
                       </button>
                     </div>
                   </section>
@@ -961,20 +974,22 @@ export default function HouseholdPage() {
                         type="button"
                         onClick={closeTransactionModal}
                         disabled={isSavingTransaction || isExtractingReceipt}
-                        aria-label="Close shared transaction modal"
-                        title="Close"
+                        aria-label={t("household.closeSharedTransaction")}
+                        title={t("common.close")}
                       >
                         <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
                       </button>
-                      <h2 id="household-transaction-modal-title">{editingTransactionId ? "Edit Shared Transaction" : "Add Shared Transaction"}</h2>
+                      <h2 id="household-transaction-modal-title">
+                        {editingTransactionId ? t("household.editSharedTransaction") : t("household.addSharedTransaction")}
+                      </h2>
                       {!editingTransactionId ? (
                         <button
                           className="secondary-button scan-receipt-button"
                           type="button"
                           onClick={onScanReceiptClick}
                           disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0 || !canScanReceipt}
-                          aria-label={isExtractingReceipt ? "Scanning receipt" : canScanReceipt ? "Scan receipt" : "Subscribers only"}
-                          title={isExtractingReceipt ? "Scanning receipt" : canScanReceipt ? "Scan receipt" : "Subscribers only"}
+                          aria-label={isExtractingReceipt ? t("transactions.scanningReceipt") : canScanReceipt ? t("transactions.scanReceipt") : t("transactions.subscribersOnly")}
+                          title={isExtractingReceipt ? t("transactions.scanningReceipt") : canScanReceipt ? t("transactions.scanReceipt") : t("transactions.subscribersOnly")}
                         >
                           <FontAwesomeIcon icon={faCamera} aria-hidden="true" />
                         </button>
@@ -992,7 +1007,7 @@ export default function HouseholdPage() {
                     />
 
                     {!canScanReceipt && !editingTransactionId ? (
-                      <p className="feedback">Upgrade to subscriber to unlock receipt scanning.</p>
+                      <p className="feedback">{t("transactions.upgradeForReceipt")}</p>
                     ) : null}
 
                     {receiptError ? <p className="feedback error">{receiptError}</p> : null}
@@ -1005,7 +1020,7 @@ export default function HouseholdPage() {
                       }}
                     >
                       <label>
-                        Date
+                        {t("transactions.date")}
                         <input
                           type="date"
                           value={transactionDateDraft}
@@ -1016,14 +1031,14 @@ export default function HouseholdPage() {
                       </label>
 
                       <label>
-                        Type
+                        {t("transactions.type")}
                         <select
                           value={transactionTypeDraft}
                           onChange={(event) => setTransactionTypeDraft(event.target.value)}
                           disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}
                           required
                         >
-                          {modalTypeOptions.length === 0 ? <option value="">No types available</option> : null}
+                          {modalTypeOptions.length === 0 ? <option value="">{t("transactions.noTypesAvailable")}</option> : null}
                           {modalTypeOptions.map((typeName) => (
                             <option key={typeName} value={typeName}>
                               {typeName}
@@ -1032,12 +1047,10 @@ export default function HouseholdPage() {
                         </select>
                       </label>
 
-                      {modalTypeOptions.length === 0 ? (
-                        <p className="feedback error">No transaction types found. Add one in your user page first.</p>
-                      ) : null}
+                      {modalTypeOptions.length === 0 ? <p className="feedback error">{t("transactions.noTypesFound")}</p> : null}
 
                       <label>
-                        Amount (CAD)
+                        {t("transactions.amountCad")}
                         <input
                           type="number"
                           min={0.01}
@@ -1051,13 +1064,13 @@ export default function HouseholdPage() {
                       </label>
 
                       <label className="transaction-description-field">
-                        Description
+                        {t("transactions.description")}
                         <input
                           type="text"
                           value={transactionDescriptionDraft}
                           onChange={(event) => setTransactionDescriptionDraft(event.target.value)}
                           disabled={isSavingTransaction || isExtractingReceipt}
-                          placeholder="Short note about this transaction"
+                          placeholder={t("transactions.shortNote")}
                           required
                         />
                       </label>
@@ -1077,26 +1090,26 @@ export default function HouseholdPage() {
                             }}
                             disabled={isSavingTransaction || isExtractingReceipt || !canUseRecurringTransactions}
                           />
-                          <span>Make this transaction recurring</span>
+                          <span>{t("transactions.recurringToggle")}</span>
                         </label>
 
                         {isRecurringDraft && canUseRecurringTransactions ? (
                           <div className="recurrence-fields-grid">
                             <label>
-                              Frequency
+                              {t("transactions.frequency")}
                               <select
                                 value={recurrenceFrequencyDraft}
                                 onChange={(event) => setRecurrenceFrequencyDraft(event.target.value as RecurrenceFrequency)}
                                 disabled={isSavingTransaction || isExtractingReceipt}
                               >
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="yearly">Yearly</option>
+                                <option value="weekly">{t("transactions.weekly")}</option>
+                                <option value="monthly">{t("transactions.monthly")}</option>
+                                <option value="yearly">{t("transactions.yearly")}</option>
                               </select>
                             </label>
 
                             <label>
-                              Starts on
+                              {t("transactions.startsOn")}
                               <input
                                 type="date"
                                 value={recurrenceStartDateDraft}
@@ -1106,21 +1119,21 @@ export default function HouseholdPage() {
                             </label>
 
                             <label>
-                              Ends
+                              {t("transactions.ends")}
                               <select
                                 value={recurrenceEndModeDraft}
                                 onChange={(event) => setRecurrenceEndModeDraft(event.target.value as RecurrenceEndMode)}
                                 disabled={isSavingTransaction || isExtractingReceipt}
                               >
-                                <option value="never">Never</option>
-                                <option value="onDate">On date</option>
-                                <option value="afterOccurrences">After occurrences</option>
+                                <option value="never">{t("transactions.never")}</option>
+                                <option value="onDate">{t("transactions.onDate")}</option>
+                                <option value="afterOccurrences">{t("transactions.afterOccurrences")}</option>
                               </select>
                             </label>
 
                             {recurrenceEndModeDraft === "onDate" ? (
                               <label>
-                                End date
+                                {t("transactions.endDate")}
                                 <input
                                   type="date"
                                   value={recurrenceEndDateDraft}
@@ -1132,7 +1145,7 @@ export default function HouseholdPage() {
 
                             {recurrenceEndModeDraft === "afterOccurrences" ? (
                               <label>
-                                Occurrences
+                                {t("transactions.occurrences")}
                                 <input
                                   type="number"
                                   min={1}
@@ -1145,16 +1158,16 @@ export default function HouseholdPage() {
                               </label>
                             ) : null}
 
-                            <p className="recurrence-preview-note">Preview only for now. Automation will be enabled in a future backend update.</p>
+                            <p className="recurrence-preview-note">{t("transactions.recurrencePreview")}</p>
                           </div>
                         ) : null}
 
-                        {!canUseRecurringTransactions ? <p className="feedback">Recurring transactions are a subscriber feature.</p> : null}
+                        {!canUseRecurringTransactions ? <p className="feedback">{t("transactions.recurringSubscriberOnly")}</p> : null}
                       </fieldset>
 
                       <fieldset className="household-participants-fieldset">
-                        <legend>Who should pay for this transaction?</legend>
-                        <p className="transaction-meta">Select members included in the split. You can include or exclude yourself.</p>
+                        <legend>{t("household.whoShouldPay")}</legend>
+                        <p className="transaction-meta">{t("household.selectMembersSplit")}</p>
                         <div className="household-participants-grid">
                           {(household?.members ?? []).map((member) => {
                             const checked = participantUserIdsDraft.includes(member.userId);
@@ -1178,7 +1191,7 @@ export default function HouseholdPage() {
 
                       <div className="modal-actions">
                         <button type="submit" disabled={isSavingTransaction || isExtractingReceipt || modalTypeOptions.length === 0}>
-                          {isSavingTransaction ? "Saving..." : editingTransactionId ? "Save Changes" : "Save Transaction"}
+                          {isSavingTransaction ? t("home.saving") : editingTransactionId ? t("transactions.saveChanges") : t("transactions.saveTransaction")}
                         </button>
                       </div>
                     </form>
@@ -1196,18 +1209,18 @@ export default function HouseholdPage() {
                     onClick={(event) => event.stopPropagation()}
                   >
                     <div className="page-title-row page-title-actions">
-                      <h2 id="household-info-modal-title">Household Info</h2>
+                      <h2 id="household-info-modal-title">{t("household.householdInfo")}</h2>
                       <button className="secondary-button" type="button" onClick={closeHouseholdInfoModal} disabled={isInviting || isLeaving}>
-                        Close
+                        {t("common.close")}
                       </button>
                     </div>
 
                     <p>
-                      Household name: <strong>{household.name}</strong>
+                      {t("household.householdName")}: <strong>{household.name}</strong>
                     </p>
 
                     <div className="household-members">
-                      <h3>Members</h3>
+                      <h3>{t("household.members")}</h3>
                       <ul className="household-member-list">
                         {household.members.map((member) => (
                           <li key={member.userId} className="household-member-row">
@@ -1219,7 +1232,7 @@ export default function HouseholdPage() {
 
                     {isCreator ? (
                       <div className="household-invite-form">
-                        <label htmlFor="invite-email">Invite member by email</label>
+                        <label htmlFor="invite-email">{t("household.inviteByEmail")}</label>
                         <div className="household-inline-form">
                           <input
                             id="invite-email"
@@ -1230,7 +1243,7 @@ export default function HouseholdPage() {
                             disabled={isInviting}
                           />
                           <button type="button" onClick={onInviteMember} disabled={isInviting}>
-                            {isInviting ? "Inviting..." : "Invite"}
+                            {isInviting ? t("household.inviting") : t("common.invite")}
                           </button>
                         </div>
                         {inviteError ? <p className="feedback error">{inviteError}</p> : null}
@@ -1239,7 +1252,7 @@ export default function HouseholdPage() {
                     ) : null}
 
                     <button className="secondary-button" type="button" onClick={onLeaveHousehold} disabled={isLeaving}>
-                      {isLeaving ? "Leaving..." : "Leave household"}
+                      {isLeaving ? t("household.leaving") : t("household.leaveHousehold")}
                     </button>
                   </section>
                 </div>
@@ -1248,20 +1261,20 @@ export default function HouseholdPage() {
           );
         })() : (
           <>
-            <h2>Create your household</h2>
-            <p>Start by creating a household, then invite registered users by email.</p>
+            <h2>{t("household.createYourHousehold")}</h2>
+            <p>{t("household.createHouseholdHint")}</p>
 
             <div className="household-inline-form">
               <input
                 type="text"
                 value={newHouseholdName}
                 onChange={(event) => setNewHouseholdName(event.target.value)}
-                placeholder="Ex: The Rivera Household"
+                placeholder={t("household.householdNamePlaceholder")}
                 disabled={isCreating}
                 maxLength={80}
               />
               <button type="button" onClick={onCreateHousehold} disabled={isCreating}>
-                {isCreating ? "Creating..." : "Create"}
+                {isCreating ? t("household.creating") : t("common.create")}
               </button>
             </div>
             {createError ? <p className="feedback error">{createError}</p> : null}

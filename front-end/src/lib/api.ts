@@ -45,15 +45,117 @@ import type {
   TransactionUpdateResult,
   User,
 } from "../types/auth";
+import i18n from "../i18n";
 
 export const API_URL = (import.meta.env.VITE_API_URL ?? "/api").replace(/\/$/, "");
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) {
-    return error.message;
+const apiErrorTranslationMap: Record<string, string> = {
+  "Request failed": "errors.requestFailed",
+  "Server returned an invalid auth response": "errors.serverInvalidAuth",
+  "Server returned an invalid subscription response": "errors.serverInvalidSubscription",
+  "Server returned an invalid budget response": "errors.serverInvalidBudget",
+  "Server returned an invalid budget history response": "errors.serverInvalidBudgetHistory",
+  "Server returned an invalid transaction response": "errors.serverInvalidTransaction",
+  "Server returned an invalid receipt scan response": "errors.serverInvalidReceiptScan",
+  "Server returned an invalid delete response": "errors.serverInvalidDelete",
+  "Server returned an invalid transactions response": "errors.serverInvalidTransactions",
+  "Server returned an invalid transaction history response": "errors.serverInvalidTransactionHistory",
+  "Server returned an invalid transaction types response": "errors.serverInvalidTransactionTypes",
+  "Server returned an invalid transaction type response": "errors.serverInvalidTransactionType",
+  "Server returned an invalid household response": "errors.serverInvalidHousehold",
+  "Server returned an invalid leave response": "errors.serverInvalidLeave",
+  "Server returned an invalid alerts response": "errors.serverInvalidAlerts",
+  "Server returned an invalid alert response": "errors.serverInvalidAlert",
+  "Server returned an invalid household transactions response": "errors.serverInvalidHouseholdTransactions",
+  "Server returned an invalid settlement response": "errors.serverInvalidSettlement",
+  "Server returned an invalid household transaction response": "errors.serverInvalidHouseholdTransaction",
+  "Failed to update subscription": "errors.failedUpdateSubscription",
+  "Failed to load budget": "errors.failedLoadBudget",
+  "Failed to save budget": "errors.failedSaveBudget",
+  "Failed to load budget history": "errors.failedLoadBudgetHistory",
+  "Failed to save transaction": "errors.failedSaveTransaction",
+  "Failed to scan receipt": "errors.failedScanReceipt",
+  "Failed to update transaction": "errors.failedUpdateTransaction",
+  "Failed to delete transaction": "errors.failedDeleteTransaction",
+  "Failed to load transactions": "errors.failedLoadTransactions",
+  "Failed to load transaction history": "errors.failedLoadTransactionHistory",
+  "Failed to load transaction types": "errors.failedLoadTransactionTypes",
+  "Failed to create transaction type": "errors.failedCreateType",
+  "Failed to delete transaction type": "errors.failedDeleteType",
+  "Failed to load household": "errors.failedLoadHousehold",
+  "Failed to create household": "errors.failedCreateHousehold",
+  "Failed to invite user": "errors.failedInviteUser",
+  "Failed to leave household": "errors.failedLeaveHousehold",
+  "Failed to load alerts": "errors.failedLoadAlerts",
+  "Failed to respond to invite": "errors.failedRespondInvite",
+  "Failed to load household transactions": "errors.failedLoadHouseholdTransactions",
+  "Failed to load household settlement": "errors.failedLoadHouseholdSettlement",
+  "Failed to save household transaction": "errors.failedSaveHouseholdTransaction",
+  "Failed to update household transaction": "errors.failedUpdateHouseholdTransaction",
+  "Failed to delete household transaction": "errors.failedDeleteHouseholdTransaction",
+  "Authentication required": "errors.authenticationRequired",
+  "Invalid email or password": "errors.invalidEmailOrPassword",
+  "Email is already in use": "errors.emailInUse",
+  "User not found": "errors.userNotFound",
+  "subscribers must be a boolean": "errors.subscribersBoolean",
+  "Type already exists": "errors.typeAlreadyExists",
+  "Type not found": "errors.typeNotFound",
+  "Household not found": "errors.householdNotFound",
+  "You are not in a household": "errors.notInHousehold",
+  "Transaction not found": "errors.transactionNotFound",
+  "Amount must be a positive number": "errors.amountPositive",
+  "Transaction date must be in YYYY-MM-DD format": "errors.transactionDateInvalid",
+  "Receipt scanning is available to subscribers only": "errors.receiptSubscriberOnly",
+  "Invalid image upload": "errors.invalidImageUpload",
+  "Image is too large. Please upload up to 6MB.": "errors.imageTooLarge",
+  "Receipt image is required": "errors.receiptImageRequired",
+  "Uploaded image is empty": "errors.uploadedImageEmpty",
+  "OCR is not configured on the server": "errors.ocrNotConfigured",
+  "OCR provider returned an empty response": "errors.ocrEmptyResponse",
+  "Could not extract receipt details. Please try another photo.": "errors.receiptExtractFailed",
+  "Could not match receipt to your transaction types.": "errors.receiptTypeNoMatch",
+  "Month must be in YYYY-MM format": "errors.monthFormatInvalid",
+  "Please select at least one household member": "errors.selectHouseholdMember",
+  "All selected participants must belong to your household": "errors.participantsOutOfHousehold",
+  "Please provide a valid registered email": "errors.validRegisteredEmail",
+  "No registered user matches that email": "errors.noRegisteredUserByEmail",
+  "This user already has a pending invite": "errors.pendingInviteExists",
+  "Creator cannot leave while other members are still in the household": "errors.creatorCannotLeave",
+  "Invalid registration payload": "errors.invalidRegistrationPayload",
+  "Failed to register user": "errors.failedRegisterUser",
+  "Invalid login payload": "errors.invalidLoginPayload",
+  "Failed to login": "errors.failedLogin",
+  "Failed to load user": "errors.failedLoadUser",
+  "Household name is required (max 80 characters)": "errors.householdNameRequired",
+  "You are already in a household": "errors.alreadyInHousehold",
+  "Household id is required": "errors.householdIdRequired",
+  "You can only invite users to your own household": "errors.inviteOwnHouseholdOnly",
+  "Only the household creator can invite members": "errors.inviteCreatorOnly",
+  "This user is already in a household": "errors.userAlreadyInHousehold",
+  "Transaction id is required": "errors.transactionIdRequired",
+  "Type id is required": "errors.typeIdRequired",
+};
+
+function translateApiMessage(message: string): string {
+  const translationKey = apiErrorTranslationMap[message];
+
+  if (!translationKey) {
+    return message;
   }
 
-  return "Request failed";
+  return i18n.t(translationKey);
+}
+
+function resolveApiMessage(message: string | undefined, fallback: string): string {
+  return translateApiMessage(message ?? fallback);
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return translateApiMessage(error.message);
+  }
+
+  return translateApiMessage("Request failed");
 }
 
 async function readJson<T>(response: Response): Promise<T | null> {
@@ -93,14 +195,14 @@ export async function sendAuthRequest(path: "/auth/login" | "/auth/register", pa
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Request failed",
+        message: resolveApiMessage(data?.message, "Request failed"),
       };
     }
 
     if (!data?.user) {
       return {
         ok: false,
-        message: "Server returned an invalid auth response",
+        message: translateApiMessage("Server returned an invalid auth response"),
       };
     }
 
@@ -137,14 +239,14 @@ export async function updateMySubscription(subscribers: boolean): Promise<AuthRe
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to update subscription",
+        message: resolveApiMessage(data?.message, "Failed to update subscription"),
       };
     }
 
     if (!data?.user) {
       return {
         ok: false,
-        message: "Server returned an invalid subscription response",
+        message: translateApiMessage("Server returned an invalid subscription response"),
       };
     }
 
@@ -172,7 +274,7 @@ export async function getMyMonthlyBudget(): Promise<BudgetFetchResult> {
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load budget",
+        message: resolveApiMessage(data?.message, "Failed to load budget"),
       };
     }
 
@@ -186,7 +288,7 @@ export async function getMyMonthlyBudget(): Promise<BudgetFetchResult> {
     if (typeof data.budgetAmountCad !== "number") {
       return {
         ok: false,
-        message: "Server returned an invalid budget response",
+        message: translateApiMessage("Server returned an invalid budget response"),
       };
     }
 
@@ -216,14 +318,14 @@ export async function saveMyMonthlyBudget(budgetAmountCad: number): Promise<Budg
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to save budget",
+        message: resolveApiMessage(data?.message, "Failed to save budget"),
       };
     }
 
     if (typeof data?.budgetAmountCad !== "number") {
       return {
         ok: false,
-        message: "Server returned an invalid budget response",
+        message: translateApiMessage("Server returned an invalid budget response"),
       };
     }
 
@@ -251,14 +353,14 @@ export async function getMyMonthlyBudgetHistory(): Promise<BudgetHistoryResult> 
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load budget history",
+        message: resolveApiMessage(data?.message, "Failed to load budget history"),
       };
     }
 
     if (!Array.isArray(data?.history)) {
       return {
         ok: false,
-        message: "Server returned an invalid budget history response",
+        message: translateApiMessage("Server returned an invalid budget history response"),
       };
     }
 
@@ -303,14 +405,14 @@ export async function createMyTransaction(payload: UpsertTransactionPayload): Pr
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to save transaction",
+        message: resolveApiMessage(data?.message, "Failed to save transaction"),
       };
     }
 
     if (!data?.transaction) {
       return {
         ok: false,
-        message: "Server returned an invalid transaction response",
+        message: translateApiMessage("Server returned an invalid transaction response"),
       };
     }
 
@@ -342,14 +444,14 @@ export async function scanTransactionReceipt(file: File): Promise<ReceiptScanRes
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to scan receipt",
+        message: resolveApiMessage(data?.message, "Failed to scan receipt"),
       };
     }
 
     if (!data?.suggestion || typeof data.suggestion.amountCad !== "number" || !data.suggestion.type || !data.suggestion.description) {
       return {
         ok: false,
-        message: "Server returned an invalid receipt scan response",
+        message: translateApiMessage("Server returned an invalid receipt scan response"),
       };
     }
 
@@ -379,14 +481,14 @@ export async function updateMyTransaction(transactionId: string, payload: Upsert
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to update transaction",
+        message: resolveApiMessage(data?.message, "Failed to update transaction"),
       };
     }
 
     if (!data?.transaction) {
       return {
         ok: false,
-        message: "Server returned an invalid transaction response",
+        message: translateApiMessage("Server returned an invalid transaction response"),
       };
     }
 
@@ -414,14 +516,14 @@ export async function deleteMyTransaction(transactionId: string): Promise<Transa
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to delete transaction",
+        message: resolveApiMessage(data?.message, "Failed to delete transaction"),
       };
     }
 
     if (!data?.ok) {
       return {
         ok: false,
-        message: "Server returned an invalid delete response",
+        message: translateApiMessage("Server returned an invalid delete response"),
       };
     }
 
@@ -446,14 +548,14 @@ export async function getMyTransactions(): Promise<TransactionListResult> {
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load transactions",
+        message: resolveApiMessage(data?.message, "Failed to load transactions"),
       };
     }
 
     if (!Array.isArray(data?.transactions)) {
       return {
         ok: false,
-        message: "Server returned an invalid transactions response",
+        message: translateApiMessage("Server returned an invalid transactions response"),
       };
     }
 
@@ -481,14 +583,14 @@ export async function getMyTransactionHistory(): Promise<TransactionHistoryResul
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load transaction history",
+        message: resolveApiMessage(data?.message, "Failed to load transaction history"),
       };
     }
 
     if (!Array.isArray(data?.history)) {
       return {
         ok: false,
-        message: "Server returned an invalid transaction history response",
+        message: translateApiMessage("Server returned an invalid transaction history response"),
       };
     }
 
@@ -516,14 +618,14 @@ export async function getMyTransactionTypes(): Promise<TransactionTypesFetchResu
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load transaction types",
+        message: resolveApiMessage(data?.message, "Failed to load transaction types"),
       };
     }
 
     if (!Array.isArray(data?.transactionTypes)) {
       return {
         ok: false,
-        message: "Server returned an invalid transaction types response",
+        message: translateApiMessage("Server returned an invalid transaction types response"),
       };
     }
 
@@ -553,14 +655,14 @@ export async function createMyTransactionType(name: string): Promise<Transaction
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to create transaction type",
+        message: resolveApiMessage(data?.message, "Failed to create transaction type"),
       };
     }
 
     if (!data?.transactionType) {
       return {
         ok: false,
-        message: "Server returned an invalid transaction type response",
+        message: translateApiMessage("Server returned an invalid transaction type response"),
       };
     }
 
@@ -588,14 +690,14 @@ export async function deleteMyTransactionType(typeId: string): Promise<Transacti
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to delete transaction type",
+        message: resolveApiMessage(data?.message, "Failed to delete transaction type"),
       };
     }
 
     if (!data?.ok) {
       return {
         ok: false,
-        message: "Server returned an invalid delete response",
+        message: translateApiMessage("Server returned an invalid delete response"),
       };
     }
 
@@ -620,7 +722,7 @@ export async function getMyHousehold(): Promise<HouseholdFetchResult> {
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load household",
+        message: resolveApiMessage(data?.message, "Failed to load household"),
       };
     }
 
@@ -650,14 +752,14 @@ export async function createMyHousehold(name: string): Promise<HouseholdCreateRe
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to create household",
+        message: resolveApiMessage(data?.message, "Failed to create household"),
       };
     }
 
     if (!data?.household) {
       return {
         ok: false,
-        message: "Server returned an invalid household response",
+        message: translateApiMessage("Server returned an invalid household response"),
       };
     }
 
@@ -687,14 +789,14 @@ export async function inviteToHousehold(householdId: string, email: string): Pro
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to invite user",
+        message: resolveApiMessage(data?.message, "Failed to invite user"),
       };
     }
 
     if (!data?.household) {
       return {
         ok: false,
-        message: "Server returned an invalid household response",
+        message: translateApiMessage("Server returned an invalid household response"),
       };
     }
 
@@ -722,14 +824,14 @@ export async function leaveMyHousehold(): Promise<HouseholdLeaveResult> {
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to leave household",
+        message: resolveApiMessage(data?.message, "Failed to leave household"),
       };
     }
 
     if (!data?.ok) {
       return {
         ok: false,
-        message: "Server returned an invalid leave response",
+        message: translateApiMessage("Server returned an invalid leave response"),
       };
     }
 
@@ -754,14 +856,14 @@ export async function getMyAlerts(): Promise<AlertsFetchResult> {
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load alerts",
+        message: resolveApiMessage(data?.message, "Failed to load alerts"),
       };
     }
 
     if (!Array.isArray(data?.alerts)) {
       return {
         ok: false,
-        message: "Server returned an invalid alerts response",
+        message: translateApiMessage("Server returned an invalid alerts response"),
       };
     }
 
@@ -791,14 +893,14 @@ export async function respondToAlert(alertId: string, decision: "accept" | "decl
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to respond to invite",
+        message: resolveApiMessage(data?.message, "Failed to respond to invite"),
       };
     }
 
     if (!data?.alert) {
       return {
         ok: false,
-        message: "Server returned an invalid alert response",
+        message: translateApiMessage("Server returned an invalid alert response"),
       };
     }
 
@@ -826,14 +928,14 @@ export async function getMyHouseholdTransactions(): Promise<HouseholdTransaction
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load household transactions",
+        message: resolveApiMessage(data?.message, "Failed to load household transactions"),
       };
     }
 
     if (!Array.isArray(data?.transactions)) {
       return {
         ok: false,
-        message: "Server returned an invalid household transactions response",
+        message: translateApiMessage("Server returned an invalid household transactions response"),
       };
     }
 
@@ -862,7 +964,7 @@ export async function getMyHouseholdSettlement(month?: string): Promise<Househol
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to load household settlement",
+        message: resolveApiMessage(data?.message, "Failed to load household settlement"),
       };
     }
 
@@ -874,7 +976,7 @@ export async function getMyHouseholdSettlement(month?: string): Promise<Househol
     ) {
       return {
         ok: false,
-        message: "Server returned an invalid settlement response",
+        message: translateApiMessage("Server returned an invalid settlement response"),
       };
     }
 
@@ -909,14 +1011,14 @@ export async function createMyHouseholdTransaction(payload: UpsertHouseholdTrans
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to save household transaction",
+        message: resolveApiMessage(data?.message, "Failed to save household transaction"),
       };
     }
 
     if (!data?.transaction) {
       return {
         ok: false,
-        message: "Server returned an invalid household transaction response",
+        message: translateApiMessage("Server returned an invalid household transaction response"),
       };
     }
 
@@ -949,14 +1051,14 @@ export async function updateMyHouseholdTransaction(
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to update household transaction",
+        message: resolveApiMessage(data?.message, "Failed to update household transaction"),
       };
     }
 
     if (!data?.transaction) {
       return {
         ok: false,
-        message: "Server returned an invalid household transaction response",
+        message: translateApiMessage("Server returned an invalid household transaction response"),
       };
     }
 
@@ -984,14 +1086,14 @@ export async function deleteMyHouseholdTransaction(transactionId: string): Promi
     if (!response.ok) {
       return {
         ok: false,
-        message: data?.message ?? "Failed to delete household transaction",
+        message: resolveApiMessage(data?.message, "Failed to delete household transaction"),
       };
     }
 
     if (!data?.ok) {
       return {
         ok: false,
-        message: "Server returned an invalid delete response",
+        message: translateApiMessage("Server returned an invalid delete response"),
       };
     }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 
@@ -9,11 +10,13 @@ function detectInitialTheme(): ThemeMode {
 }
 
 export default function PageSidePanel() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => detectInitialTheme());
+  const currentLanguage = i18n.resolvedLanguage === "fr-CA" ? "fr-CA" : "en";
 
   useEffect(() => {
     setIsOpen(false);
@@ -53,8 +56,8 @@ export default function PageSidePanel() {
         className="secondary-button side-panel-trigger"
         type="button"
         onClick={() => setIsOpen(true)}
-        aria-label="Open side panel"
-        title="Open side panel"
+        aria-label={t("sidePanel.open")}
+        title={t("sidePanel.open")}
       >
         {"<"}
       </button>
@@ -65,7 +68,7 @@ export default function PageSidePanel() {
             className="side-panel-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="Side panel"
+            aria-label={t("sidePanel.title")}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="side-panel-header">
@@ -73,8 +76,8 @@ export default function PageSidePanel() {
                 className="secondary-button side-panel-theme-toggle"
                 type="button"
                 onClick={toggleThemeMode}
-                aria-label={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                title={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                aria-label={themeMode === "dark" ? t("sidePanel.switchToLight") : t("sidePanel.switchToDark")}
+                title={themeMode === "dark" ? t("sidePanel.switchToLight") : t("sidePanel.switchToDark")}
               >
                 <span aria-hidden="true">{themeMode === "dark" ? "☀" : "🌙"}</span>
               </button>
@@ -82,28 +85,49 @@ export default function PageSidePanel() {
                 className="secondary-button side-panel-close"
                 type="button"
                 onClick={() => setIsOpen(false)}
-                aria-label="Close side panel"
-                title="Close side panel"
+                aria-label={t("sidePanel.close")}
+                title={t("sidePanel.close")}
               >
                 {">"}
               </button>
             </div>
 
+            <div className="side-panel-language-toggle" role="group" aria-label={t("language.label")}>
+              <button
+                className={`secondary-button side-panel-language-button${currentLanguage === "en" ? " active" : ""}`}
+                type="button"
+                onClick={() => void i18n.changeLanguage("en")}
+                aria-pressed={currentLanguage === "en"}
+                title={t("language.english")}
+              >
+                EN
+              </button>
+              <button
+                className={`secondary-button side-panel-language-button${currentLanguage === "fr-CA" ? " active" : ""}`}
+                type="button"
+                onClick={() => void i18n.changeLanguage("fr-CA")}
+                aria-pressed={currentLanguage === "fr-CA"}
+                title={t("language.frenchCanada")}
+              >
+                FR
+              </button>
+            </div>
+
             <div className="side-panel-actions">
               <button className="secondary-button side-panel-action" type="button" onClick={() => navigate("/user")}>
-                Profile
+                {t("sidePanel.profile")}
               </button>
               <button className="secondary-button side-panel-action" type="button" disabled>
-                Settings
+                {t("sidePanel.settings")}
               </button>
               <button className="secondary-button side-panel-action" type="button" onClick={() => navigate("/")}>
-                Stats
+                {t("sidePanel.stats")}
               </button>
             </div>
 
             <div className="side-panel-footer">
               <button className="secondary-button side-panel-action" type="button" onClick={() => void onLogout()}>
-                Logout
+                {t("common.logout")}
               </button>
             </div>
           </aside>

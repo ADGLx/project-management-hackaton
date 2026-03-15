@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../state/AuthContext";
 
 function SessionLoader() {
+  const { t } = useTranslation();
+
   return (
     <main className="auth-shell">
       <section className="auth-panel loader-panel">
-        <p>Checking your session...</p>
+        <p>{t("routeGates.checkingSession")}</p>
       </section>
     </main>
   );

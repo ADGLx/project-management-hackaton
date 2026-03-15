@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faUser, faUsers } from "@fortawesome/free-solid-svg-icons";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function AddTransactionFab() {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,21 +76,21 @@ export default function AddTransactionFab() {
       {isMenuOpen ? <div className="fab-menu-backdrop" aria-hidden="true" onClick={() => setIsMenuOpen(false)} /> : null}
 
       {isMenuOpen ? (
-        <div className="fab-menu-panel" role="menu" aria-label="Choose transaction type">
+        <div className="fab-menu-panel" role="menu" aria-label={t("fab.chooseType")}>
           <button className="fab-option-card" type="button" role="menuitem" onClick={openPersonalTransactionModal}>
             <span className="fab-option-icon" aria-hidden="true">
               <FontAwesomeIcon icon={faUser} />
             </span>
-            <span className="fab-option-title">Personal</span>
-            <span className="fab-option-description">Personal budget only</span>
+            <span className="fab-option-title">{t("fab.personal")}</span>
+            <span className="fab-option-description">{t("fab.personalDesc")}</span>
           </button>
 
           <button className="fab-option-card" type="button" role="menuitem" onClick={openSharedTransactionModal}>
             <span className="fab-option-icon" aria-hidden="true">
               <FontAwesomeIcon icon={faUsers} />
             </span>
-            <span className="fab-option-title">Shared</span>
-            <span className="fab-option-description">Split with Household members</span>
+            <span className="fab-option-title">{t("fab.shared")}</span>
+            <span className="fab-option-description">{t("fab.sharedDesc")}</span>
           </button>
         </div>
       ) : null}
@@ -99,8 +101,8 @@ export default function AddTransactionFab() {
         onClick={() => setIsMenuOpen((current) => !current)}
         aria-expanded={isMenuOpen}
         aria-haspopup="menu"
-        aria-label="Add transaction"
-        title="Add transaction"
+        aria-label={t("fab.addTransaction")}
+        title={t("fab.addTransaction")}
       >
         <FontAwesomeIcon icon={faPlus} />
       </button>

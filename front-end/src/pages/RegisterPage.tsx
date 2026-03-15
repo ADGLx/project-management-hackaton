@@ -1,9 +1,11 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { register } = useAuth();
 
@@ -32,48 +34,48 @@ export default function RegisterPage() {
   return (
     <main className="auth-shell">
       <section className="auth-panel brand-panel">
-        <p className="eyebrow">Create Account</p>
-        <h1>Join Coloc Calcul.</h1>
-        <p>Budget tailored to Canadias.</p>
+        <p className="eyebrow">{t("auth.createAccount")}</p>
+        <h1>{t("auth.join")}</h1>
+        <p>{t("auth.appTagline")}</p>
       </section>
 
       <section className="auth-panel form-panel">
-        <h2>Register</h2>
-        <p>Tell us who you are so teammates can recognize you fast.</p>
+        <h2>{t("auth.register")}</h2>
+        <p>{t("auth.whoAreYou")}</p>
 
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
-            Full name
+            {t("auth.fullName")}
             <input
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
               autoComplete="name"
-              placeholder="Alex Rivera"
+              placeholder={t("auth.fullName")}
               required
             />
           </label>
 
           <label>
-            Email
+            {t("auth.email")}
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
-              placeholder="you@team.com"
+              placeholder={t("auth.email")}
               required
             />
           </label>
 
           <label>
-            Password
+            {t("auth.password")}
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="new-password"
-              placeholder="At least 8 characters"
+              placeholder={t("auth.password")}
               required
               minLength={8}
             />
@@ -82,12 +84,12 @@ export default function RegisterPage() {
           {error ? <p className="feedback error">{error}</p> : null}
 
           <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating account..." : "Create account"}
+            {isSubmitting ? t("auth.creatingAccount") : t("auth.createAccount")}
           </button>
         </form>
 
         <p className="switch-link">
-          Already have an account? <Link to="/login">Sign in</Link>
+          {t("auth.alreadyHaveAccount")} <Link to="/login">{t("auth.signIn")}</Link>
         </p>
       </section>
     </main>

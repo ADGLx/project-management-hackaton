@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
 import { getMyAlerts, respondToAlert } from "../lib/api";
 import { useAuth } from "../state/AuthContext";
 import type { UserAlert } from "../types/auth";
@@ -8,17 +9,8 @@ import SubscriptionControl from "./SubscriptionControl";
 
 const ALERT_POLL_INTERVAL_MS = 5_000;
 
-function formatAlertTimestamp(value: string): string {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toLocaleString();
-}
-
 export default function TopRightControls() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<UserAlert[]>([]);
   const [isLoadingAlerts, setIsLoadingAlerts] = useState(true);
@@ -138,15 +130,15 @@ export default function TopRightControls() {
 
   return (
     <>
-      <div className="top-right-controls" aria-label="Account controls">
+      <div className="top-right-controls" aria-label={t("topControls.accountControls")}>
         <SubscriptionControl />
 
         <button
           className={`subscription-trigger alert-trigger secondary-button${isAlertsModalOpen ? " active" : ""}`}
           type="button"
           onClick={() => setIsAlertsModalOpen(true)}
-          aria-label={`Alerts${pendingAlertCount > 0 ? ` (${pendingAlertCount} pending)` : ""}`}
-          title="Alerts"
+          aria-label={`${t("topControls.alerts")}${pendingAlertCount > 0 ? ` (${t("topControls.pendingSuffix", { count: pendingAlertCount })})` : ""}`}
+          title={t("topControls.alerts")}
         >
           <span className="alert-icon-wrap">
             <FontAwesomeIcon className="mobile-nav-icon" icon={faBell} aria-hidden="true" />
@@ -170,25 +162,31 @@ export default function TopRightControls() {
                 type="button"
                 onClick={closeAlertsModal}
                 disabled={Boolean(isRespondingAlertId)}
-                aria-label="Close alerts modal"
-                title="Close"
+                aria-label={t("topControls.closeAlerts")}
+                title={t("common.close")}
               >
                 <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
               </button>
-              <h2 id="alerts-modal-title">Alerts</h2>
+              <h2 id="alerts-modal-title">{t("topControls.alerts")}</h2>
             </div>
 
-            {isLoadingAlerts ? <p>Loading alerts...</p> : null}
+            {isLoadingAlerts ? <p>{t("topControls.loadingAlerts")}</p> : null}
             {alertError ? <p className="feedback error">{alertError}</p> : null}
 
-            {!isLoadingAlerts && alerts.length === 0 ? <p>No alerts right now.</p> : null}
+            {!isLoadingAlerts && alerts.length === 0 ? <p>{t("topControls.noAlerts")}</p> : null}
 
             {alerts.length > 0 ? (
               <div className="alerts-list" role="list">
                 {alerts.map((alert) => {
-                  const inviterName = alert.invitedByName || "A household creator";
-                  const householdName = alert.householdName || "a household";
-                  const timestamp = formatAlertTimestamp(alert.createdAt);
+                  const inviterName = alert.invitedByName || t("topControls.householdCreator");
+                  const householdName = alert.householdName || t("topControls.aHousehold");
+                  const timestampDate = new Date(alert.createdAt);
+                  const timestamp = Number.isNaN(timestampDate.getTime())
+                    ? ""
+                    : new Intl.DateTimeFormat(i18n.language === "fr-CA" ? "fr-CA" : "en-CA", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(timestampDate);
                   const isPending = alert.status === "pending";
                   const isBusy = isRespondingAlertId === alert.id;
 
@@ -196,10 +194,12 @@ export default function TopRightControls() {
                     <article className="alert-row" role="listitem" key={alert.id}>
                       <div className="alert-copy">
                         <p>
-                          <strong>{inviterName}</strong> invited you to join <strong>{householdName}</strong>.
+                          {t("topControls.invitedYou", { inviter: inviterName, household: householdName })}
                         </p>
                         {timestamp ? <p className="transaction-meta">{timestamp}</p> : null}
-                        {!isPending ? <p className="alert-status-label">{alert.status === "accepted" ? "Accepted" : "Declined"}</p> : null}
+                        {!isPending ? (
+                          <p className="alert-status-label">{alert.status === "accepted" ? t("topControls.accepted") : t("topControls.declined")}</p>
+                        ) : null}
                       </div>
 
                       {isPending ? (
@@ -210,10 +210,10 @@ export default function TopRightControls() {
                             onClick={() => void onRespondToAlert(alert.id, "decline")}
                             disabled={Boolean(isRespondingAlertId)}
                           >
-                            {isBusy ? "Working..." : "Decline"}
+                            {isBusy ? t("topControls.working") : t("topControls.decline")}
                           </button>
                           <button type="button" onClick={() => void onRespondToAlert(alert.id, "accept")} disabled={Boolean(isRespondingAlertId)}>
-                            {isBusy ? "Working..." : "Accept"}
+                            {isBusy ? t("topControls.working") : t("topControls.accept")}
                           </button>
                         </div>
                       ) : null}

@@ -1752,6 +1752,26 @@ button:disabled {
   text-align: left;
 }
 
+.side-panel-language-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+.side-panel-language-button {
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.side-panel-language-button.active {
+  color: var(--text);
+  background: linear-gradient(135deg, var(--mobile-nav-active-bg-start), var(--mobile-nav-active-bg-end));
+  border-color: var(--border);
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

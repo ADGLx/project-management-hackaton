@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
@@ -8,6 +9,7 @@ import { useAuth } from "../state/AuthContext";
 import type { TransactionType } from "../types/auth";
 
 export default function UserPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [transactionTypes, setTransactionTypes] = useState<TransactionType[]>([]);
@@ -40,7 +42,7 @@ export default function UserPage() {
 
     const name = newTypeName.trim();
     if (!name) {
-      setError("Type name is required.");
+      setError(t("user.typeNameRequired"));
       return;
     }
 
@@ -85,15 +87,15 @@ export default function UserPage() {
         <h1 className="dashboard-title">
           <PageSidePanel />
           <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
-          <span>{user?.name ?? "Profile"}</span>
+          <span>{user?.name ?? t("user.profile")}</span>
         </h1>
         <button className="secondary-button" type="button" onClick={onLogout}>
-          Logout
+          {t("common.logout")}
         </button>
       </section>
 
       <section className="dashboard-card">
-        <h2>Transaction Types</h2>
+        <h2>{t("user.transactionTypes")}</h2>
 
         <form
           className="type-form"
@@ -106,19 +108,19 @@ export default function UserPage() {
             type="text"
             value={newTypeName}
             onChange={(event) => setNewTypeName(event.target.value)}
-            placeholder="Add a new type"
+            placeholder={t("user.addNewType")}
             disabled={isSaving}
             required
           />
           <button type="submit" disabled={isSaving}>
-            {isSaving ? "Adding..." : "Add Type"}
+            {isSaving ? t("user.adding") : t("user.addType")}
           </button>
         </form>
 
         {error ? <p className="feedback error">{error}</p> : null}
 
         {isLoading ? (
-          <p>Loading types...</p>
+          <p>{t("user.loadingTypes")}</p>
         ) : (
           <div className="type-list" role="list">
             {transactionTypes.map((transactionType) => (
@@ -130,7 +132,7 @@ export default function UserPage() {
                   onClick={() => void onDeleteType(transactionType.id)}
                   disabled={isDeletingTypeId === transactionType.id || isSaving}
                 >
-                  {isDeletingTypeId === transactionType.id ? "Deleting..." : "Delete"}
+                  {isDeletingTypeId === transactionType.id ? t("user.deleting") : t("common.delete")}
                 </button>
               </article>
             ))}
