@@ -1,6 +1,8 @@
 :root {
   color-scheme: light;
-  font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: "Radio Canada", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100;
   line-height: 1.4;
   --bg: #f6f2f2;
   --bg-grid: rgba(128, 36, 36, 0.08);
@@ -193,6 +195,13 @@ h1,
   font-weight: 400;
   font-style: normal;
   font-variation-settings: "YEAR" 1979;
+}
+
+.radio-canada-body {
+  font-family: "Radio Canada", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
 }
 
 .auth-shell {
