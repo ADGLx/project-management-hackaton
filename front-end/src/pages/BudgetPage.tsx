@@ -261,21 +261,21 @@ export default function BudgetPage() {
 
         <div className="budget-prediction-meta-grid">
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">Spent so far</p>
+            <p className="budget-summary-label">Spent</p>
             <p className="budget-prediction-tile-value">{formattedCurrency.format(currentMonthSpending)}</p>
           </article>
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">Run-rate projection</p>
+            <p className="budget-summary-label">Run-rate</p>
             <p className="budget-prediction-tile-value">{formattedCurrency.format(currentRunRateProjection)}</p>
           </article>
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">3-month average</p>
+            <p className="budget-summary-label">3-month avg</p>
             <p className="budget-prediction-tile-value">
               {historicalAverage === null ? "Not enough data" : formattedCurrency.format(historicalAverage)}
             </p>
           </article>
           <article className="budget-prediction-tile">
-            <p className="budget-summary-label">Compared to budget</p>
+            <p className="budget-summary-label">Comparison</p>
             <p className={`budget-prediction-tile-value ${predictedVarianceToBudget !== null && predictedVarianceToBudget >= 0 ? "amount-positive" : ""}`}>
               {predictedVarianceToBudget === null
                 ? "Budget not set"
@@ -311,6 +311,7 @@ export default function BudgetPage() {
             <p>
               Current pace is based on <strong>{dayOfMonth}</strong> of <strong>{daysInMonth}</strong> elapsed days.
             </p>
+            <p>Formula: (spent so far / days elapsed) * days in month</p>
             <p>
               If it is early in the month, we rely more on historical months to reduce volatility.
             </p>

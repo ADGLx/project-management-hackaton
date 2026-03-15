@@ -227,6 +227,18 @@ ul {
   max-width: 16ch;
 }
 
+.app-brand-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.app-brand-icon {
+  font-size: 0.9em;
+  line-height: 1;
+}
+
 .form-panel {
   padding: clamp(1.4rem, 3vw, 2.3rem);
   display: grid;

@@ -31,11 +31,14 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <section className="auth-panel brand-panel">
-        <p className="eyebrow">(sorry guys I forgot the name lmao)</p>
-        <h1>Our app  name </h1>
-        <p>
-          Dont pay attention to the UI, this isnt final lol
-        </p>
+        <p className="eyebrow">Welcome</p>
+        <h1 className="app-brand-title">
+          <span className="app-brand-icon" aria-hidden="true">
+            🍁
+          </span>
+          <span>Coloc Calcul</span>
+        </h1>
+        <p>Budget tailored to Canadias.</p>
       </section>
 
       <section className="auth-panel form-panel">

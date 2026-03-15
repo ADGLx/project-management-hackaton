@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Coloc Calcul icon">
+  <defs>
+    <linearGradient id="leafGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6a3d" />
+      <stop offset="100%" stop-color="#b31217" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0f172a" />
+  <path
+    fill="url(#leafGradient)"
+    d="M32 8l4 10 9-4-4 9 10 2-8 6 7 8-10-1-2 10-6-8-6 8-2-10-10 1 7-8-8-6 10-2-4-9 9 4z"
+  />
+  <rect x="30" y="38" width="4" height="16" rx="2" fill="#f8fafc" />
+</svg>

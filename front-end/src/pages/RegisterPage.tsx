@@ -33,8 +33,8 @@ export default function RegisterPage() {
     <main className="auth-shell">
       <section className="auth-panel brand-panel">
         <p className="eyebrow">Create Account</p>
-        <h1>Start your next sprint with a clear mission and owner.</h1>
-        <p>Set up your account in under a minute and get straight to impact.</p>
+        <h1>Join Coloc Calcul.</h1>
+        <p>Budget tailored to Canadias.</p>
       </section>
 
       <section className="auth-panel form-panel">
