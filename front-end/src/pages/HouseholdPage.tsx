@@ -643,17 +643,6 @@ export default function HouseholdPage() {
           <PageSidePanel />
           <img className="dashboard-title-icon" src="/diversity.svg" alt="" aria-hidden="true" />
           <span>Household</span>
-          {household ? (
-            <button
-              className="dashboard-title-info-button"
-              type="button"
-              onClick={() => setIsHouseholdInfoModalOpen(true)}
-              aria-label="Open household info"
-              title="Household Info"
-            >
-              <FontAwesomeIcon icon={faCircleInfo} aria-hidden="true" />
-            </button>
-          ) : null}
         </h1>
       </section>
 
@@ -668,15 +657,26 @@ export default function HouseholdPage() {
                 <div className="household-finance-panel">
                   <div className="household-month-row">
                     <h2 className="household-month-title">{monthValueToLabel(selectedSettlementMonth)}</h2>
-                    <button
-                      className="secondary-button household-month-picker-button"
-                      type="button"
-                      onClick={onMonthPickerButtonClick}
-                      aria-label="Select settlement month"
-                      title="Select month"
-                    >
-                      <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" />
-                    </button>
+                    <div className="household-month-actions">
+                      <button
+                        className="secondary-button household-month-picker-button"
+                        type="button"
+                        onClick={() => setIsHouseholdInfoModalOpen(true)}
+                        aria-label="Open household info"
+                        title="Household Info"
+                      >
+                        <FontAwesomeIcon icon={faCircleInfo} aria-hidden="true" />
+                      </button>
+                      <button
+                        className="secondary-button household-month-picker-button"
+                        type="button"
+                        onClick={onMonthPickerButtonClick}
+                        aria-label="Select settlement month"
+                        title="Select month"
+                      >
+                        <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" />
+                      </button>
+                    </div>
                     <input
                       ref={monthInputRef}
                       id="household-month-picker"

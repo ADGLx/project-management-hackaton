@@ -1134,6 +1134,13 @@ button:disabled {
   flex-wrap: nowrap;
 }
 
+.household-month-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
 .household-month-title {
   margin: 0;
   color: var(--text) !important;
