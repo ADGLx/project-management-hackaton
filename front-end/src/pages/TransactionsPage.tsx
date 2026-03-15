@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCamera, faFileCode, faFileCsv, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCamera, faFileCode, faFileCsv, faFilter, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from "react-router-dom";
 import AddTransactionFab from "../components/AddTransactionFab";
 import MobileNav from "../components/MobileNav";
@@ -35,6 +35,15 @@ function formatDateForDisplay(dateValue: string): string {
 type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 type RecurrenceEndMode = "never" | "onDate" | "afterOccurrences";
 type SortOption = "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc";
+type CategoryFilterOption = "all" | "fixed" | "variable";
+type TransactionCategory = "Fixed" | "Variable";
+
+const FIXED_TRANSACTION_TYPES = new Set(["housing", "transport", "utility"]);
+
+function classifyTransactionCategory(type: string): TransactionCategory {
+  const normalizedType = type.trim().toLowerCase();
+  return FIXED_TRANSACTION_TYPES.has(normalizedType) ? "Fixed" : "Variable";
+}
 
 export default function TransactionsPage() {
   const { user } = useAuth();
@@ -61,7 +70,9 @@ export default function TransactionsPage() {
   const [receiptError, setReceiptError] = useState("");
   const [isFilterSortOpen, setIsFilterSortOpen] = useState(false);
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<CategoryFilterOption>("all");
   const [selectedSortOption, setSelectedSortOption] = useState<SortOption>("dateDesc");
+  const [selectedTransaction, setSelectedTransaction] = useState<UserTransaction | null>(null);
   const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   const formattedCurrency = useMemo(
@@ -101,10 +112,17 @@ export default function TransactionsPage() {
   }, [transactionTypes, transactions]);
 
   const visibleTransactions = useMemo(() => {
+    const filteredByCategory =
+      selectedCategoryFilter === "all"
+        ? transactions
+        : transactions.filter((transaction) => {
+            const category = classifyTransactionCategory(transaction.type);
+            return selectedCategoryFilter === "fixed" ? category === "Fixed" : category === "Variable";
+          });
     const filteredTransactions =
       selectedTypeFilter === "all"
-        ? transactions
-        : transactions.filter((transaction) => transaction.type === selectedTypeFilter);
+        ? filteredByCategory
+        : filteredByCategory.filter((transaction) => transaction.type === selectedTypeFilter);
     const sortedTransactions = [...filteredTransactions];
 
     sortedTransactions.sort((left, right) => {
@@ -122,7 +140,7 @@ export default function TransactionsPage() {
     });
 
     return sortedTransactions;
-  }, [selectedSortOption, selectedTypeFilter, transactions]);
+  }, [selectedCategoryFilter, selectedSortOption, selectedTypeFilter, transactions]);
 
   async function loadTransactionsData() {
     setDataError("");
@@ -189,6 +207,11 @@ export default function TransactionsPage() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (selectedTransaction) {
+          setSelectedTransaction(null);
+          return;
+        }
+
         if (isSavingTransaction || isExtractingReceipt) {
           return;
         }
@@ -199,13 +222,13 @@ export default function TransactionsPage() {
       }
     }
 
-    if (!isTransactionModalOpen) {
+    if (!isTransactionModalOpen && !selectedTransaction) {
       return;
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isExtractingReceipt, isTransactionModalOpen, isSavingTransaction]);
+  }, [isExtractingReceipt, isTransactionModalOpen, isSavingTransaction, selectedTransaction]);
 
   function openTransactionModal() {
     setTransactionError("");
@@ -251,6 +274,35 @@ export default function TransactionsPage() {
     setTransactionError("");
     setReceiptError("");
     setEditingTransactionId(null);
+  }
+
+  function openTransactionDetailsModal(transaction: UserTransaction) {
+    setSelectedTransaction(transaction);
+  }
+
+  function closeTransactionDetailsModal() {
+    setSelectedTransaction(null);
+  }
+
+  function onEditFromTransactionDetails() {
+    if (!selectedTransaction) {
+      return;
+    }
+
+    closeTransactionDetailsModal();
+    openEditTransactionModal(selectedTransaction);
+  }
+
+  async function onDeleteFromTransactionDetails() {
+    if (!selectedTransaction) {
+      return;
+    }
+
+    const didDelete = await onDeleteTransaction(selectedTransaction.id);
+
+    if (didDelete) {
+      closeTransactionDetailsModal();
+    }
   }
 
   function onScanReceiptClick() {
@@ -334,7 +386,7 @@ export default function TransactionsPage() {
     setEditingTransactionId(null);
   }
 
-  async function onDeleteTransaction(transactionId: string) {
+  async function onDeleteTransaction(transactionId: string): Promise<boolean> {
     setTransactionError("");
     setIsDeletingTransactionId(transactionId);
     const result = await deleteMyTransaction(transactionId);
@@ -342,11 +394,12 @@ export default function TransactionsPage() {
     if (!result.ok) {
       setTransactionError(result.message);
       setIsDeletingTransactionId(null);
-      return;
+      return false;
     }
 
     await loadTransactionsData();
     setIsDeletingTransactionId(null);
+    return true;
   }
 
   function exportTransactionsAsCsv() {
@@ -357,6 +410,7 @@ export default function TransactionsPage() {
     const rows = transactions.map((transaction) => ({
       transactionDate: transaction.transactionDate,
       amountCad: transaction.amountCad,
+      category: classifyTransactionCategory(transaction.type),
       type: transaction.type,
       description: transaction.description,
     }));
@@ -373,6 +427,7 @@ export default function TransactionsPage() {
     const payload = transactions.map((transaction) => ({
       transactionDate: transaction.transactionDate,
       amountCad: transaction.amountCad,
+      category: classifyTransactionCategory(transaction.type),
       type: transaction.type,
       description: transaction.description,
     }));
@@ -396,42 +451,55 @@ export default function TransactionsPage() {
       </section>
 
       <section className="dashboard-card transactions-card">
-        <div className="card-header-actions-row">
+        <div className="page-title-row page-title-actions">
           <button
-            className="secondary-button filter-sort-button"
+            className="secondary-button filter-sort-button filter-sort-icon-button"
             type="button"
             onClick={() => setIsFilterSortOpen((current) => !current)}
             aria-expanded={isFilterSortOpen}
             aria-controls="transactions-filter-sort-panel"
+            aria-label="Toggle filter and sort"
+            title="Filter & Sort"
           >
-            Filter & Sort
+            <FontAwesomeIcon icon={faFilter} aria-hidden="true" />
           </button>
-          <div className="export-actions" role="group" aria-label="Export transactions">
-            <button
-              className="secondary-button export-button"
-              type="button"
-              onClick={exportTransactionsAsCsv}
-              disabled={!canExportTransactions || transactions.length === 0}
-              aria-label="Export transactions as CSV"
-            >
-              <FontAwesomeIcon icon={faFileCsv} aria-hidden="true" />
-              <span>CSV</span>
-            </button>
-            <button
-              className="secondary-button export-button"
-              type="button"
-              onClick={exportTransactionsAsJson}
-              disabled={!canExportTransactions || transactions.length === 0}
-              aria-label="Export transactions as JSON"
-            >
-              <FontAwesomeIcon icon={faFileCode} aria-hidden="true" />
-              <span>JSON</span>
-            </button>
+          <div className="card-top-right-actions">
+            <div className="export-actions" role="group" aria-label="Export transactions">
+              <button
+                className="secondary-button export-button"
+                type="button"
+                onClick={exportTransactionsAsCsv}
+                disabled={!canExportTransactions || transactions.length === 0}
+                aria-label="Export transactions as CSV"
+              >
+                <FontAwesomeIcon icon={faFileCsv} aria-hidden="true" />
+                <span>CSV</span>
+              </button>
+              <button
+                className="secondary-button export-button"
+                type="button"
+                onClick={exportTransactionsAsJson}
+                disabled={!canExportTransactions || transactions.length === 0}
+                aria-label="Export transactions as JSON"
+              >
+                <FontAwesomeIcon icon={faFileCode} aria-hidden="true" />
+                <span>JSON</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {isFilterSortOpen ? (
           <div className="filter-sort-panel" id="transactions-filter-sort-panel">
+            <label>
+              Category
+              <select value={selectedCategoryFilter} onChange={(event) => setSelectedCategoryFilter(event.target.value as CategoryFilterOption)}>
+                <option value="all">All categories</option>
+                <option value="fixed">Fixed</option>
+                <option value="variable">Variable</option>
+              </select>
+            </label>
+
             <label>
               Filter by type
               <select value={selectedTypeFilter} onChange={(event) => setSelectedTypeFilter(event.target.value)}>
@@ -461,34 +529,25 @@ export default function TransactionsPage() {
         {visibleTransactions.length > 0 ? (
           <div className="transactions-list" role="list">
             {visibleTransactions.map((transaction) => (
-              <article className="transaction-row" role="listitem" key={transaction.id}>
-                <div className="transaction-main">
-                  <p className="transaction-merchant">{transaction.type}</p>
-                  <p className="transaction-meta">{transaction.description}</p>
-                </div>
-                <p className="transaction-date">{formatDateForDisplay(transaction.transactionDate)}</p>
-                <p className="transaction-amount">{formattedCurrency.format(transaction.amountCad)}</p>
-                <div className="transaction-actions">
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => openEditTransactionModal(transaction)}
-                    disabled={isSavingTransaction || isDeletingTransactionId === transaction.id}
-                    aria-label={`Edit ${transaction.description}`}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => void onDeleteTransaction(transaction.id)}
-                    disabled={isDeletingTransactionId === transaction.id || isSavingTransaction}
-                    aria-label={`Delete ${transaction.description}`}
-                  >
-                    {isDeletingTransactionId === transaction.id ? "Deleting..." : "Delete"}
-                  </button>
-                </div>
-              </article>
+              <button
+                className="household-transaction-row"
+                type="button"
+                role="listitem"
+                key={transaction.id}
+                onClick={() => openTransactionDetailsModal(transaction)}
+                aria-label={`Open details for ${transaction.description}`}
+              >
+                <span className="household-transaction-main-line">
+                  <span className="household-transaction-description">{transaction.description}</span>
+                  <span className="household-transaction-amount">{formattedCurrency.format(transaction.amountCad)}</span>
+                </span>
+                <span className="household-transaction-meta-line">
+                  <span>Category: {classifyTransactionCategory(transaction.type)}</span>
+                  <span className="household-transaction-type">
+                    {transaction.type} • {formatDateForDisplay(transaction.transactionDate)}
+                  </span>
+                </span>
+              </button>
             ))}
           </div>
         ) : (
@@ -502,6 +561,62 @@ export default function TransactionsPage() {
 
       {dataError ? <p className="feedback error">{dataError}</p> : null}
       {transactionError && !isTransactionModalOpen ? <p className="feedback error">{transactionError}</p> : null}
+
+      {selectedTransaction ? (
+        <div className="modal-overlay" role="presentation" onClick={closeTransactionDetailsModal}>
+          <section
+            className="modal-card household-transaction-details-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="transaction-details-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="page-title-row page-title-actions">
+              <h3 id="transaction-details-title">Transaction details</h3>
+              <button className="secondary-button" type="button" onClick={closeTransactionDetailsModal}>
+                Close
+              </button>
+            </div>
+
+            <div className="household-transaction-details-grid">
+              <p>
+                Description: <strong>{selectedTransaction.description}</strong>
+              </p>
+              <p>
+                Amount: <strong>{formattedCurrency.format(selectedTransaction.amountCad)}</strong>
+              </p>
+              <p>
+                Category: <strong>{classifyTransactionCategory(selectedTransaction.type)}</strong>
+              </p>
+              <p>
+                Type: <strong>{selectedTransaction.type}</strong>
+              </p>
+              <p>
+                Date: <strong>{formatDateForDisplay(selectedTransaction.transactionDate)}</strong>
+              </p>
+            </div>
+
+            <div className="household-transaction-details-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={onEditFromTransactionDetails}
+                disabled={isSavingTransaction || isDeletingTransactionId === selectedTransaction.id}
+              >
+                Edit
+              </button>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => void onDeleteFromTransactionDetails()}
+                disabled={isDeletingTransactionId === selectedTransaction.id || isSavingTransaction}
+              >
+                {isDeletingTransactionId === selectedTransaction.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {isTransactionModalOpen ? (
         <div className="modal-overlay" role="presentation" onClick={closeTransactionModal}>
