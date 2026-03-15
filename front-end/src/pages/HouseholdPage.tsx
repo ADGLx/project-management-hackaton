@@ -884,32 +884,45 @@ export default function HouseholdPage() {
                     aria-labelledby="household-transaction-details-title"
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <div className="page-title-row page-title-actions">
-                      <h3 id="household-transaction-details-title">Transaction details</h3>
-                      <button className="secondary-button" type="button" onClick={closeHouseholdTransactionDetailsModal}>
-                        Close
+                    <div className="modal-title-row">
+                      <button
+                        className="secondary-button modal-close-button"
+                        type="button"
+                        onClick={closeHouseholdTransactionDetailsModal}
+                        aria-label="Close shared transaction details modal"
+                        title="Close"
+                      >
+                        <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
                       </button>
+                      <h2 id="household-transaction-details-title">Transaction details</h2>
                     </div>
 
                     <div className="household-transaction-details-grid">
                       <p>
-                        Description: <strong>{selectedHouseholdTransaction.description}</strong>
+                        <span className="household-transaction-detail-label">Description</span>
+                        <strong className="household-transaction-detail-value">{selectedHouseholdTransaction.description}</strong>
                       </p>
                       <p>
-                        Amount: <strong>{formattedCurrency.format(selectedHouseholdTransaction.amountCad)}</strong>
+                        <span className="household-transaction-detail-label">Amount</span>
+                        <strong className="household-transaction-detail-value">{formattedCurrency.format(selectedHouseholdTransaction.amountCad)}</strong>
                       </p>
                       <p>
-                        By: <strong>{selectedHouseholdTransaction.createdByName}</strong>
+                        <span className="household-transaction-detail-label">By</span>
+                        <strong className="household-transaction-detail-value">{selectedHouseholdTransaction.createdByName}</strong>
                       </p>
                       <p>
-                        Type: <strong>{selectedHouseholdTransaction.type}</strong>
+                        <span className="household-transaction-detail-label">Type</span>
+                        <strong className="household-transaction-detail-value">{selectedHouseholdTransaction.type}</strong>
                       </p>
                       <p>
-                        Date: <strong>{formatDateForDisplay(selectedHouseholdTransaction.transactionDate)}</strong>
+                        <span className="household-transaction-detail-label">Date</span>
+                        <strong className="household-transaction-detail-value">{formatDateForDisplay(selectedHouseholdTransaction.transactionDate)}</strong>
                       </p>
                       <p>
-                        Split with:{" "}
-                        <strong>{selectedHouseholdTransaction.participants.map((participant) => participant.name).join(", ") || "nobody"}</strong>
+                        <span className="household-transaction-detail-label">Split with</span>
+                        <strong className="household-transaction-detail-value">
+                          {selectedHouseholdTransaction.participants.map((participant) => participant.name).join(", ") || "nobody"}
+                        </strong>
                       </p>
                     </div>
 

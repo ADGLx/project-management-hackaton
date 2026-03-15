@@ -568,28 +568,39 @@ export default function TransactionsPage() {
             aria-labelledby="transaction-details-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="page-title-row page-title-actions">
-              <h3 id="transaction-details-title">Transaction details</h3>
-              <button className="secondary-button" type="button" onClick={closeTransactionDetailsModal}>
-                Close
+            <div className="modal-title-row">
+              <button
+                className="secondary-button modal-close-button"
+                type="button"
+                onClick={closeTransactionDetailsModal}
+                aria-label="Close transaction details modal"
+                title="Close"
+              >
+                <FontAwesomeIcon icon={faXmark} aria-hidden="true" />
               </button>
+              <h2 id="transaction-details-title">Transaction details</h2>
             </div>
 
             <div className="household-transaction-details-grid">
               <p>
-                Description: <strong>{selectedTransaction.description}</strong>
+                <span className="household-transaction-detail-label">Description</span>
+                <strong className="household-transaction-detail-value">{selectedTransaction.description}</strong>
               </p>
               <p>
-                Amount: <strong>{formattedCurrency.format(selectedTransaction.amountCad)}</strong>
+                <span className="household-transaction-detail-label">Amount</span>
+                <strong className="household-transaction-detail-value">{formattedCurrency.format(selectedTransaction.amountCad)}</strong>
               </p>
               <p>
-                Category: <strong>{classifyTransactionCategory(selectedTransaction.type)}</strong>
+                <span className="household-transaction-detail-label">Category</span>
+                <strong className="household-transaction-detail-value">{classifyTransactionCategory(selectedTransaction.type)}</strong>
               </p>
               <p>
-                Type: <strong>{selectedTransaction.type}</strong>
+                <span className="household-transaction-detail-label">Type</span>
+                <strong className="household-transaction-detail-value">{selectedTransaction.type}</strong>
               </p>
               <p>
-                Date: <strong>{formatDateForDisplay(selectedTransaction.transactionDate)}</strong>
+                <span className="household-transaction-detail-label">Date</span>
+                <strong className="household-transaction-detail-value">{formatDateForDisplay(selectedTransaction.transactionDate)}</strong>
               </p>
             </div>
 

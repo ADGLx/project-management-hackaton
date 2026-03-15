@@ -1390,11 +1390,32 @@ button:disabled {
 
 .household-transaction-details-grid {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.55rem;
+  width: min(420px, 100%);
+  margin-inline: auto;
 }
 
 .household-transaction-details-grid p {
   margin: 0;
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 9rem) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.7rem;
+}
+
+.household-transaction-detail-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.household-transaction-detail-value {
+  display: inline-block;
+  min-width: 0;
+  padding: 0.18rem 0.48rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--border));
+  background: color-mix(in srgb, var(--primary) 16%, var(--panel-strong));
+  overflow-wrap: anywhere;
 }
 
 .household-transaction-details-actions {
