@@ -110,26 +110,33 @@ export default function BudgetPage() {
 
   const predictionChartData = useMemo(() => {
     if (recentCompletedMonths.length > 0) {
+      const oldestToNewest = recentCompletedMonths.slice().reverse();
+      const lastHistoricalIndex = oldestToNewest.length - 1;
+
       return [
-        ...recentCompletedMonths.slice().reverse().map((month) => ({
+        ...oldestToNewest.map((month, index) => ({
           label: monthLabel(month.monthStart),
-          amountCad: month.spendingAmountCad,
+          actualCad: month.spendingAmountCad,
+          predictedCad: index === lastHistoricalIndex ? month.spendingAmountCad : null,
         })),
         {
           label: monthLabel(currentMonthStart),
-          amountCad: predictedSpending,
+          actualCad: currentMonthSpending,
+          predictedCad: predictedSpending,
         },
       ];
     }
 
     return [
       {
-        label: "Spent",
-        amountCad: currentMonthSpending,
+        label: "Current",
+        actualCad: currentMonthSpending,
+        predictedCad: currentMonthSpending,
       },
       {
-        label: "Predicted",
-        amountCad: predictedSpending,
+        label: "Forecast",
+        actualCad: null,
+        predictedCad: predictedSpending,
       },
     ];
   }, [recentCompletedMonths, currentMonthStart, predictedSpending, currentMonthSpending]);
@@ -190,7 +197,7 @@ export default function BudgetPage() {
       <section className="dashboard-card budget-prediction-card">
         <div className="budget-prediction-header">
           <div className="budget-prediction-title-wrap">
-            <h2>Predicted Spending</h2>
+            <h2>Forecast</h2>
             <button
               className="dashboard-title-info-button"
               type="button"
@@ -205,8 +212,18 @@ export default function BudgetPage() {
         </div>
 
         <div className="budget-prediction-chart-wrap">
+          <div className="budget-chart-legend" aria-hidden="true">
+            <span className="budget-chart-legend-item">
+              <span className="budget-chart-legend-swatch budget-chart-legend-swatch-actual" />
+              <span>Actual</span>
+            </span>
+            <span className="budget-chart-legend-item">
+              <span className="budget-chart-legend-swatch budget-chart-legend-swatch-predicted" />
+              <span>Predicted</span>
+            </span>
+          </div>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={predictionChartData} margin={{ top: 8, right: 10, left: -20, bottom: 8 }}>
+            <LineChart data={predictionChartData} margin={{ top: 32, right: 10, left: -20, bottom: 8 }}>
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--muted)" }} />
               <YAxis
                 tickLine={false}
@@ -215,15 +232,27 @@ export default function BudgetPage() {
                 tickFormatter={(value: number) => `$${Math.round(value)}`}
               />
               <Tooltip
-                formatter={(value: number) => formattedCurrency.format(Number(value))}
+                formatter={(value: number, seriesName: string) => [formattedCurrency.format(Number(value)), seriesName]}
                 labelFormatter={(label) => `Period: ${String(label)}`}
               />
               <Line
                 type="monotone"
-                dataKey="amountCad"
-                stroke="var(--primary)"
+                name="Actual"
+                dataKey="actualCad"
+                stroke="var(--chart-category-1)"
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: "var(--primary)", stroke: "var(--panel)", strokeWidth: 2 }}
+                dot={{ r: 4, fill: "var(--chart-category-1)", stroke: "var(--panel)", strokeWidth: 2 }}
+                activeDot={{ r: 5 }}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                name="Predicted"
+                dataKey="predictedCad"
+                stroke="var(--chart-category-5)"
+                strokeWidth={2.5}
+                strokeDasharray="6 4"
+                dot={{ r: 4, fill: "var(--chart-category-5)", stroke: "var(--panel)", strokeWidth: 2 }}
                 activeDot={{ r: 5 }}
               />
             </LineChart>
