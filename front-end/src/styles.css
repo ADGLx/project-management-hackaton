@@ -227,7 +227,13 @@ h1,
   display: grid;
   gap: 1.2rem;
   align-content: center;
-  background: linear-gradient(165deg, var(--brand-gradient-start), var(--brand-gradient-end));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--brand-gradient-start) 78%, transparent),
+      color-mix(in srgb, var(--brand-gradient-end) 72%, transparent)
+    ),
+    url("/roomates.jpg") center / cover no-repeat;
   color: var(--brand-text);
 }
 
